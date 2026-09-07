@@ -17,9 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <array>
 #include <cstdint>
 
-using std::uint8_t;
-
-enum register_names
+enum RegisterNames
 {
   r0 = 0,
   r1 = 1,
@@ -36,6 +34,27 @@ enum register_names
 
 struct pdp11
 {
-  std::array<uint8_t, 9> registers;
+  std::array<uint16_t, 9> registers;
   std::array<uint8_t, 8192> memory;
+};
+
+enum Addressing
+{
+  Direct,
+  Indirect,
+};
+
+enum Mode
+{
+  AutoIncrement,
+  AutoDecrement,
+  Index
+};
+
+struct operand
+{
+  uint16_t opcode;
+  uint8_t destination;
+  Addressing addressing;
+  Mode mode;
 };
