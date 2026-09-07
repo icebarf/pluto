@@ -47,6 +47,7 @@ enum Addressing
 
 enum Mode
 {
+  Register,
   AutoIncrement,
   AutoDecrement,
   Index
