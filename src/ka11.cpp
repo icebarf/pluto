@@ -17,6 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <array>
 #include <cstdint>
 
+// KA11 CPU Architecture
+
 enum RegisterNames
 {
   r0 = 0,
@@ -35,7 +37,6 @@ enum RegisterNames
 struct pdp11
 {
   std::array<uint16_t, 9> registers;
-  std::array<uint8_t, 8192> memory;
 };
 
 enum Addressing
