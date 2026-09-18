@@ -60,7 +60,7 @@ extract(uint16_t word)
     (word >> 12) &
     0b0000'0111; // we also turn off the bit for byte/word detection
 
-  DestinationType type = [word]() -> DestinationType {
+  DestinationType type = [word]() {
     if (word >> 15)
       return DestinationType::Byte;
     else
@@ -68,11 +68,9 @@ extract(uint16_t word)
   }();
 
   bool double_operand = false;
-  uint16_t opcode = 0;
 
   if (digit_1 >= 1 && digit_1 <= 6) {
     double_operand = true;
-    opcode = digit_1;
   }
 
   instruction instruction;
