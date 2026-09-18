@@ -17,46 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <array>
 #include <cstdint>
 
-// KA11 CPU Architecture
+#include "instructions/instructions.hpp"
 
-enum RegisterNames
-{
-  r0 = 0,
-  r1 = 1,
-  r2 = 2,
-  r3 = 3,
-  r4 = 4,
-  r5 = 5,
-  r6 = 6,
-  r7 = 7,
-  stack_pointer = 6,
-  program_counter = 7,
-  status = 8
-};
+// KA11 CPU Architecture
 
 struct pdp11
 {
-  std::array<uint16_t, 9> registers;
-};
-
-enum Addressing
-{
-  Direct,
-  Indirect,
-};
-
-enum Mode
-{
-  Register,
-  AutoIncrement,
-  AutoDecrement,
-  Index
-};
-
-struct operand
-{
-  uint16_t opcode;
-  uint8_t destination;
-  Addressing addressing;
-  Mode mode;
+  std::array<Instruction::Registers, 9> registers;
+  std::array<uint8_t, 56 * 1024> memory;
 };
