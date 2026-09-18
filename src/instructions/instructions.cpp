@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "instructions.hpp"
 #include <cstdint>
 
-using namespace Instruction;
+using namespace Instructions;
 
 // we have word
 // bit 15: 0/1 (1= byte Destination and not the full word)
@@ -34,18 +34,18 @@ using namespace Instruction;
 // Refer PDP11/20 Handbook pdf chapter 3.1 and 3.2 for instruction layouts for
 // single operand addressing and double operand addressing
 
-inline instruction
+inline Instruction
 extract_single_operand_instruction(uint16_t word)
 {
-  return instruction{ .opcode = static_cast<uint16_t>((word >> 6)),
+  return Instruction{ .opcode = static_cast<uint16_t>((word >> 6)),
                       .destination = { static_cast<Registers>(word & 0x07) },
                       .mode = { static_cast<Mode>((word >> 3) & 0x7) } };
 };
 
-inline instruction
+inline Instruction
 extract_double_operand_instruction(uint16_t word)
 {
-  return instruction{ .opcode = static_cast<uint16_t>((word >> 12) & 0x7),
+  return Instruction{ .opcode = static_cast<uint16_t>((word >> 12) & 0x7),
                       .destination = { static_cast<Registers>(word & 0x07),
                                        static_cast<Registers>((word >> 6) &
                                                               0x7) },
@@ -53,7 +53,7 @@ extract_double_operand_instruction(uint16_t word)
                                 static_cast<Mode>((word >> 9) & 0x7) } };
 };
 
-instruction
+Instruction
 extract(uint16_t word)
 {
   uint8_t digit_1 =
@@ -73,7 +73,7 @@ extract(uint16_t word)
     double_operand = true;
   }
 
-  instruction instruction;
+  Instruction instruction;
   if (double_operand) {
     instruction = extract_double_operand_instruction(word);
   } else {
@@ -82,4 +82,72 @@ extract(uint16_t word)
 
   instruction.dest_type = type;
   return instruction;
+}
+
+constexpr uint16_t CARRY_SET = 0b0000'0000'0000'0001;
+constexpr uint16_t CARRY_UNSET = 0b1111'1111'1111'1110;
+constexpr uint16_t OVERFLOW_SET = 0b0000'0000'0000'0010;
+constexpr uint16_t OVERFLOW_UNSET = 0b1111'1111'1111'1101;
+constexpr uint16_t ZERO_SET = 0b0000'0000'0000'0100;
+constexpr uint16_t ZERO_UNSET = 0b1111'1111'1111'1011;
+constexpr uint16_t NEGATIVE_SET = 0b0000'0000'0000'1000;
+constexpr uint16_t NEGATIVE_UNSET = 0b1111'1111'1111'0111;
+constexpr uint16_t TRAP_SET = 0b0000'0000'0001'0000;
+constexpr uint16_t TRAP_UNSET = 0b1111'1111'1110'1111;
+
+void
+set_status(StatusRegister::States bit, StatusRegister state, uint16_t& status)
+{
+  switch (bit) {
+    case StatusRegister::Carry: {
+      if (state.carry)
+        status = status | CARRY_SET;
+      else
+        status = status & CARRY_UNSET;
+    } break;
+
+    case StatusRegister::Overflow: {
+      if (state.overflow)
+        status = status | OVERFLOW_SET;
+      else
+        status = status & OVERFLOW_UNSET;
+    } break;
+
+    case StatusRegister::Zero: {
+      if (state.zero)
+        status = status | ZERO_SET;
+      else
+        status = status & ZERO_UNSET;
+    } break;
+
+    case StatusRegister::Negative: {
+      if (state.negative)
+        status = status | NEGATIVE_SET;
+      else
+        status = status & NEGATIVE_UNSET;
+    } break;
+
+    case StatusRegister::Trap: {
+      if (state.trap)
+        status = status | TRAP_SET;
+      else
+        status = status & TRAP_UNSET;
+    } break;
+
+    case StatusRegister::Priority: {
+      uint16_t tmp = 0xffff & (state.priority << 5);
+      status = status & tmp;
+    }
+  }
+}
+
+void
+set_status(StatusRegister state, uint16_t& status)
+{
+  set_status(StatusRegister::Carry, state, status);
+  set_status(StatusRegister::Overflow, state, status);
+  set_status(StatusRegister::Zero, state, status);
+  set_status(StatusRegister::Negative, state, status);
+  set_status(StatusRegister::Trap, state, status);
+  set_status(StatusRegister::Priority, state, status);
 }

@@ -23,6 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 struct pdp11
 {
-  std::array<Instruction::Registers, 9> registers;
+  std::array<Instructions::Registers, 9> registers;
   std::array<uint8_t, 56 * 1024> memory;
 };
