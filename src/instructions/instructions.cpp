@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "instructions.hpp"
+#include "../utilities.hpp"
 #include <cstdint>
 
 using namespace Instructions;
@@ -150,4 +151,56 @@ set_status(StatusRegister state, uint16_t& status)
   set_status(StatusRegister::Negative, state, status);
   set_status(StatusRegister::Trap, state, status);
   set_status(StatusRegister::Priority, state, status);
+}
+
+uint16_t
+get_operand_address(const Types::Memory_t& memory,
+                    Types::Registers_t& registers,
+                    Mode mode,
+                    uint8_t reg,
+                    bool is_byte)
+{
+  uint16_t address = 0;
+  switch (mode) {
+    case RegisterDeferred: {
+      address = registers[reg];
+    } break;
+
+    case AutoIncrement: {
+      address = registers[reg];
+      registers[reg] += (!is_byte || reg >= 6) ? 2 : 1;
+    } break;
+    case AutoIncrementDeferred: {
+      address = read_word(memory, registers[reg]);
+      registers[reg] += 2;
+    } break;
+
+    case AutoDecrement: {
+      registers[reg] -= (!is_byte || reg >= 6) ? 2 : 1;
+      address = registers[reg];
+    } break;
+    case AutoDecrementDeferred: {
+      registers[reg] -= 2;
+      address = read_word(memory, registers[reg]);
+    } break;
+
+    case Index: {
+      uint16_t offset =
+        read_word(memory, registers[Types::Registers::program_counter]);
+      registers[Types::Registers::program_counter] += 2;
+      address = registers[reg] + offset;
+    } break;
+
+    case IndexDeferred: {
+      uint16_t offset =
+        read_word(memory, registers[Types::Registers::program_counter]);
+      registers[Types::Registers::program_counter] += 2;
+      address = read_word(memory, registers[reg] + offset);
+    } break;
+
+    case Register: {
+      __builtin_unreachable();
+    } break;
+  }
+  return address;
 }

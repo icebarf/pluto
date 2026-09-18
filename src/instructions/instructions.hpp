@@ -1,7 +1,3 @@
-#pragma once
-#ifndef ICE_PDP_INSTRUCTIONS_H
-#define ICE_PDP_INSTRUCTIONS_H
-
 /*
 Copyright (C) 2026 Amritpal Singh
 
@@ -18,10 +14,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+#pragma once
+#ifndef ICE_PDP_INSTRUCTIONS_H
+#define ICE_PDP_INSTRUCTIONS_H
 
 #include "../types.hpp"
 #include <cstdint>
-#include <type_traits>
 
 namespace Instructions {
 
@@ -84,6 +82,13 @@ extract(uint16_t word);
 
 void
 set_status(StatusRegister state, uint16_t& status);
+
+uint16_t
+get_operand_address(const Types::Memory_t& memory,
+                    Types::Registers_t& registers,
+                    Mode mode,
+                    uint8_t reg,
+                    bool is_byte);
 
 }; // namespace Instruction
 
