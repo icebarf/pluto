@@ -19,24 +19,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "../types.hpp"
 #include <cstdint>
+#include <type_traits>
 
-namespace Instruction {
+namespace Instructions {
 
-enum Registers
-{
-  r0 = 0,
-  r1 = 1,
-  r2 = 2,
-  r3 = 3,
-  r4 = 4,
-  r5 = 5,
-  r6 = 6,
-  r7 = 7,
-  stack_pointer = 6,
-  program_counter = 7,
-  status = 8
-};
+using Types::Registers;
 
 enum Mode
 {
@@ -63,7 +52,7 @@ enum class DestinationType
   Word,
 };
 
-struct instruction
+struct Instruction
 {
   uint16_t opcode;
   Registers destination[2];
@@ -71,8 +60,30 @@ struct instruction
   Mode mode[2];
 };
 
-instruction
+struct StatusRegister
+{
+  enum States
+  {
+    Carry,
+    Overflow,
+    Zero,
+    Negative,
+    Trap,
+    Priority
+  };
+  bool carry;
+  bool overflow;
+  bool zero;
+  bool negative;
+  bool trap;
+  uint8_t priority;
+};
+
+Instruction
 extract(uint16_t word);
+
+void
+set_status(StatusRegister state, uint16_t& status);
 
 }; // namespace Instruction
 
