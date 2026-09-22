@@ -80,10 +80,10 @@ struct StatusRegister
 };
 
 Instruction
-extract(uint16_t word);
+extract(const uint16_t word);
 
 void
-set_status(StatusRegister state, uint16_t& status);
+set_status(const StatusRegister state, uint16_t& status);
 
 uint16_t
 get_operand_address(const Types::MemoryT& memory,

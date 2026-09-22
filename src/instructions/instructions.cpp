@@ -97,7 +97,7 @@ constexpr uint16_t TRAP_SET = 0b0000'0000'0001'0000;
 constexpr uint16_t TRAP_UNSET = 0b1111'1111'1110'1111;
 
 void
-set_status(StatusRegister state, uint16_t& status)
+set_status(const StatusRegister state, uint16_t& status)
 {
   if (state.targets.carry) {
     if (state.carry)
