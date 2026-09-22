@@ -60,16 +60,18 @@ struct Instruction
 
 struct StatusRegister
 {
-  enum States
+  // to set in the status flag or not
+  // true = change; false = do not change
+  struct Targets
   {
-    Carry,
-    Overflow,
-    Zero,
-    Negative,
-    Trap,
-    Priority
-  };
-  bool carry;
+    bool carry;
+    bool overflow;
+    bool zero;
+    bool negative;
+    bool trap;
+    bool priority;
+  } targets;
+  bool carry; // true = set; false = unset
   bool overflow;
   bool zero;
   bool negative;

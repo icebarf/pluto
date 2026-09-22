@@ -36,4 +36,20 @@ clr(MemoryT& memory, RegistersT& registers, Instruction instruction)
     is_byte_target ? write_byte(memory, target_address, 0)
                    : write_word(memory, target_address, 0);
   }
+
+  StatusRegister state{
+    // target enablers
+    .targets.carry = true,
+    .targets.overflow = true,
+    .targets.zero = true,
+    .targets.negative = true,
+    .targets.trap = false,
+    .targets.priority = false,
+    // actual values to set
+    .carry = false,
+    .overflow = false,
+    .zero = true,
+    .negative = false,
+  };
+  set_status(state, registers[Registers::status]);
 }

@@ -97,60 +97,47 @@ constexpr uint16_t TRAP_SET = 0b0000'0000'0001'0000;
 constexpr uint16_t TRAP_UNSET = 0b1111'1111'1110'1111;
 
 void
-set_status(StatusRegister::States bit, StatusRegister state, uint16_t& status)
-{
-  switch (bit) {
-    case StatusRegister::Carry: {
-      if (state.carry)
-        status = status | CARRY_SET;
-      else
-        status = status & CARRY_UNSET;
-    } break;
-
-    case StatusRegister::Overflow: {
-      if (state.overflow)
-        status = status | OVERFLOW_SET;
-      else
-        status = status & OVERFLOW_UNSET;
-    } break;
-
-    case StatusRegister::Zero: {
-      if (state.zero)
-        status = status | ZERO_SET;
-      else
-        status = status & ZERO_UNSET;
-    } break;
-
-    case StatusRegister::Negative: {
-      if (state.negative)
-        status = status | NEGATIVE_SET;
-      else
-        status = status & NEGATIVE_UNSET;
-    } break;
-
-    case StatusRegister::Trap: {
-      if (state.trap)
-        status = status | TRAP_SET;
-      else
-        status = status & TRAP_UNSET;
-    } break;
-
-    case StatusRegister::Priority: {
-      uint16_t tmp = 0xffff & (state.priority << 5);
-      status = status & tmp;
-    }
-  }
-}
-
-void
 set_status(StatusRegister state, uint16_t& status)
 {
-  set_status(StatusRegister::Carry, state, status);
-  set_status(StatusRegister::Overflow, state, status);
-  set_status(StatusRegister::Zero, state, status);
-  set_status(StatusRegister::Negative, state, status);
-  set_status(StatusRegister::Trap, state, status);
-  set_status(StatusRegister::Priority, state, status);
+  if (state.targets.carry) {
+    if (state.carry)
+      status = status | CARRY_SET;
+    else
+      status = status & CARRY_UNSET;
+  }
+
+  if (state.targets.overflow) {
+    if (state.overflow)
+      status = status | OVERFLOW_SET;
+    else
+      status = status & OVERFLOW_UNSET;
+  }
+
+  if (state.targets.zero) {
+    if (state.zero)
+      status = status | ZERO_SET;
+    else
+      status = status & ZERO_UNSET;
+  }
+
+  if (state.targets.negative) {
+    if (state.negative)
+      status = status | NEGATIVE_SET;
+    else
+      status = status & NEGATIVE_UNSET;
+  }
+
+  if (state.targets.trap) {
+    if (state.trap)
+      status = status | TRAP_SET;
+    else
+      status = status & TRAP_UNSET;
+  }
+
+  if (state.targets.priority) {
+    uint16_t tmp = 0xffff & (state.priority << 5);
+    status = status & tmp;
+  }
 }
 
 uint16_t
