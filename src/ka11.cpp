@@ -14,16 +14,13 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include <array>
-#include <cstdint>
 
-#include "instructions/instructions.hpp"
 #include "types.hpp"
 
 // KA11 CPU Architecture
 
 struct pdp11
 {
-  Types::Registers_t registers;
-  Types::Memory_t memory;
+  Types::RegistersT registers;
+  Types::MemoryT memory;
 };

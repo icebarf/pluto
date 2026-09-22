@@ -154,8 +154,8 @@ set_status(StatusRegister state, uint16_t& status)
 }
 
 uint16_t
-get_operand_address(const Types::Memory_t& memory,
-                    Types::Registers_t& registers,
+get_operand_address(const Types::MemoryT& memory,
+                    Types::RegistersT& registers,
                     Mode mode,
                     uint8_t reg,
                     bool is_byte)

@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <cstdint>
 
 uint16_t
-read_word(const Types::Memory_t& memory, const uint16_t address)
+read_word(const Types::MemoryT& memory, const uint16_t address)
 {
   // add trap check here for unaligned odd accesses.
   // low bytes are stored at even address  and  high bytes are at odd
@@ -26,24 +26,20 @@ read_word(const Types::Memory_t& memory, const uint16_t address)
 }
 
 void
-write_word(Types::Memory_t& memory,
-           const uint16_t address,
-           const uint16_t value)
+write_word(Types::MemoryT& memory, const uint16_t address, const uint16_t value)
 {
   memory[address] = value & 0xff;
   memory[address + 1] = (value >> 8) & 0xff;
 }
 
 uint8_t
-read_byte(const Types::Memory_t& memory, const uint16_t address)
+read_byte(const Types::MemoryT& memory, const uint16_t address)
 {
   return memory[address];
 }
 
 void
-write_byte(Types::Memory_t& memory,
-           const uint16_t address,
-           const uint16_t value)
+write_byte(Types::MemoryT& memory, const uint16_t address, const uint16_t value)
 {
   memory[address] = value;
 }

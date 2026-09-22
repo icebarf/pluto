@@ -21,17 +21,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "types.hpp"
 
 uint16_t
-read_word(const Types::Memory_t& memory, const uint16_t address);
+read_word(const Types::MemoryT& memory, const uint16_t address);
 
 void
-write_word(Types::Memory_t& memory,
+write_word(Types::MemoryT& memory,
            const uint16_t address,
            const uint16_t value);
 uint8_t
-read_byte(const Types::Memory_t& memory, const uint16_t address);
+read_byte(const Types::MemoryT& memory, const uint16_t address);
 
 void
-write_byte(Types::Memory_t& memory,
+write_byte(Types::MemoryT& memory,
            const uint16_t address,
            const uint16_t value);
 #endif

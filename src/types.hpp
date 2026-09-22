@@ -38,8 +38,8 @@ enum Registers
   status = 8
 };
 
-using Registers_t = std::array<uint16_t, 9>;
-using Memory_t = std::array<uint8_t, 56 * 1024>;
+using RegistersT = std::array<uint16_t, 9>;
+using MemoryT = std::array<uint8_t, 56 * 1024>;
 } // namespace Types ;
 
 #endif

@@ -14,11 +14,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "clr.hpp"
 #include "../utilities.hpp"
+#include "instructions.hpp"
+
+using namespace Instructions;
+using namespace Types;
 
 void
-clr(Memory_t& memory, Registers_t& registers, Instruction instruction)
+clr(MemoryT& memory, RegistersT& registers, Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
