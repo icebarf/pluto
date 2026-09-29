@@ -20,30 +20,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-[[nodiscard]] StatusRegister
-do_status_checks(uint16_t value)
+void
+set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  StatusRegister state{
-    // target enablers
-    .targets.overflow = true,
-    .targets.zero = true,
-    .targets.negative = true,
-    .targets.carry = false,
-    .targets.trap = false,
-    .targets.priority = false,
-    // actual values
-    .overflow = false,
-    .zero = false,
-    .negative = false,
-  };
   int16_t signed_value = value;
 
-  signed_value < 0 ? state.negative = true : state.negative = false;
-  value == 0 ? state.zero = true : state.zero = false;
-  value >= 0o200 ? state.overflow = true
-                 : state.overflow = false; // 0o200 == 128
-
-  return state;
+  signed_value < 0 ? status.set_negative() : status.unset_negative();
+  value == 0 ? status.set_zero() : status.unset_zero();
+  if (is_byte) {
+    value >= 0o200 ? status.set_overflow()
+                   : status.unset_overflow(); // 0o200 == 128
+  } else {
+    value >= 0o100000 ? status.set_overflow()
+                      : status.unset_overflow(); // 0o100000 == 32768
+  }
 }
 
 void
@@ -51,18 +41,18 @@ dec(MemoryT& memory, RegistersT& registers, Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
-  StatusRegister state;
+  StatusRegister state(registers[Registers::status]);
 
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
       uint8_t low_byte = registers[reg_index] & 0x00ff;
       low_byte--;
       registers[reg_index] = (registers[reg_index] & 0xff) | low_byte;
-      state = do_status_checks(low_byte);
+      set_status(state, low_byte, true);
     } else {
       registers[reg_index]--;
       uint16_t result = registers[reg_index];
-      state = do_status_checks(result);
+      set_status(state, result, false);
     }
   } else {
 
@@ -73,14 +63,12 @@ dec(MemoryT& memory, RegistersT& registers, Instruction instruction)
       uint8_t current = read_byte(memory, target_address);
       current--;
       write_byte(memory, target_address, current);
-      state = do_status_checks(current);
+      set_status(state, current, true);
     } else {
       uint16_t current = read_word(memory, target_address);
       current--;
       write_word(memory, target_address, current);
-      state = do_status_checks(current);
+      set_status(state, current, false);
     }
   }
-
-  set_status(state, registers[Registers::status]);
 }

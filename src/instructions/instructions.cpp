@@ -96,48 +96,72 @@ constexpr uint16_t NEGATIVE_UNSET = 0b1111'1111'1111'0111;
 constexpr uint16_t TRAP_SET = 0b0000'0000'0001'0000;
 constexpr uint16_t TRAP_UNSET = 0b1111'1111'1110'1111;
 
-void
-set_status(const StatusRegister state, uint16_t& status)
+StatusRegister::StatusRegister(uint16_t& status)
+  : status_register(status)
 {
-  if (state.targets.carry) {
-    if (state.carry)
-      status = status | CARRY_SET;
-    else
-      status = status & CARRY_UNSET;
-  }
+}
 
-  if (state.targets.overflow) {
-    if (state.overflow)
-      status = status | OVERFLOW_SET;
-    else
-      status = status & OVERFLOW_UNSET;
-  }
+void
+StatusRegister::set_carry()
+{
+  status_register = status_register | CARRY_SET;
+}
+void
+StatusRegister::unset_carry()
+{
+  status_register = status_register & CARRY_UNSET;
+}
 
-  if (state.targets.zero) {
-    if (state.zero)
-      status = status | ZERO_SET;
-    else
-      status = status & ZERO_UNSET;
-  }
+void
+StatusRegister::set_overflow()
+{
+  status_register = status_register | OVERFLOW_SET;
+}
+void
+StatusRegister::unset_overflow()
+{
+  status_register = status_register & OVERFLOW_UNSET;
+}
 
-  if (state.targets.negative) {
-    if (state.negative)
-      status = status | NEGATIVE_SET;
-    else
-      status = status & NEGATIVE_UNSET;
-  }
+void
+StatusRegister::set_zero()
+{
+  status_register = status_register | ZERO_SET;
+}
+void
+StatusRegister::unset_zero()
+{
+  status_register = status_register & ZERO_UNSET;
+}
 
-  if (state.targets.trap) {
-    if (state.trap)
-      status = status | TRAP_SET;
-    else
-      status = status & TRAP_UNSET;
-  }
+void
+StatusRegister::set_negative()
+{
+  status_register = status_register | NEGATIVE_SET;
+}
+void
+StatusRegister::unset_negative()
+{
+  status_register = status_register & NEGATIVE_UNSET;
+}
 
-  if (state.targets.priority) {
-    uint16_t tmp = 0xffff & (state.priority << 5);
-    status = status & tmp;
-  }
+void
+StatusRegister::set_trap()
+{
+  status_register = status_register | TRAP_SET;
+}
+void
+StatusRegister::unset_trap()
+{
+  status_register = status_register & TRAP_UNSET;
+}
+
+void
+StatusRegister::set_priority(int value)
+{
+
+  uint16_t tmp = 0xffff & (value << 5);
+  status_register = status_register & tmp;
 }
 
 uint16_t

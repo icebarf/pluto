@@ -60,30 +60,26 @@ struct Instruction
 
 struct StatusRegister
 {
-  // to set in the status flag or not
-  // true = change; false = do not change
-  struct Targets
-  {
-    bool carry;
-    bool overflow;
-    bool zero;
-    bool negative;
-    bool trap;
-    bool priority;
-  } targets;
-  bool carry; // true = set; false = unset
-  bool overflow;
-  bool zero;
-  bool negative;
-  bool trap;
-  uint8_t priority;
+private:
+  uint16_t& status_register;
+
+public:
+  StatusRegister(uint16_t& status);
+  void set_carry();
+  void unset_carry();
+  void set_overflow();
+  void unset_overflow();
+  void set_zero();
+  void unset_zero();
+  void set_negative();
+  void unset_negative();
+  void set_trap();
+  void unset_trap();
+  void set_priority(int value);
 };
 
 Instruction
 extract(const uint16_t word);
-
-void
-set_status(const StatusRegister state, uint16_t& status);
 
 uint16_t
 get_operand_address(const Types::MemoryT& memory,
