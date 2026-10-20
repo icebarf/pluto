@@ -21,7 +21,9 @@ using namespace Instructions;
 using namespace Types;
 
 void
-clr(MemoryT& memory, RegistersT& registers, Instruction instruction)
+Instructions::clr(MemoryT& memory,
+                  RegistersT& registers,
+                  Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);

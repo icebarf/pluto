@@ -42,7 +42,9 @@ set_status(StatusRegister status, uint16_t value, bool is_byte)
 }
 
 void
-neg(MemoryT& memory, RegistersT& registers, Instruction instruction)
+Instructions::neg(MemoryT& memory,
+                  RegistersT& registers,
+                  Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);

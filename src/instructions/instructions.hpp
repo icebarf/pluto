@@ -104,6 +104,16 @@ inc(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+void
+neg(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+tst(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
 } // namespace Instruction
 
 #endif
