@@ -50,16 +50,16 @@ Instructions::dec(MemoryT& memory,
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
   StatusRegister state(registers[Registers::status]);
 
+  uint16_t value = 0;
+  uint16_t oldvalue = 0;
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
-      uint8_t low_byte = registers[reg_index] & 0x00ff;
-      set_status(state, low_byte - 1, low_byte, true);
-      low_byte--;
-      registers[reg_index] = (registers[reg_index] & 0xff00) | low_byte;
+      oldvalue = registers[reg_index] & 0x00ff;
+      value = oldvalue - 1;
+      registers[reg_index] = (registers[reg_index] & 0xff00) | value;
     } else {
-      set_status(state, registers[reg_index] - 1, registers[reg_index], false);
-      registers[reg_index]--;
-      uint16_t result = registers[reg_index];
+      value = registers[reg_index]--;
+      oldvalue = value + 1;
     }
   } else {
 
@@ -67,15 +67,14 @@ Instructions::dec(MemoryT& memory,
       memory, registers, instruction.mode[0], reg_index, is_byte_target);
 
     if (is_byte_target) {
-      uint8_t current = read_byte(memory, target_address);
-      set_status(state, current - 1, current, true);
-      current--;
-      write_byte(memory, target_address, current);
+      oldvalue = read_byte(memory, target_address);
+      value = oldvalue - 1;
+      write_byte(memory, target_address, value);
     } else {
-      uint16_t current = read_word(memory, target_address);
-      set_status(state, current - 1, current, false);
-      current--;
-      write_word(memory, target_address, current);
+      oldvalue = read_word(memory, target_address);
+      value = oldvalue - 1;
+      write_word(memory, target_address, value);
     }
   }
+  set_status(state, value, oldvalue, is_byte_target);
 }

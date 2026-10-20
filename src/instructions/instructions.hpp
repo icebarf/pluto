@@ -119,6 +119,11 @@ com(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+void
+asr(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
 } // namespace Instruction
 
 #endif

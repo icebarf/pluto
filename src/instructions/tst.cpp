@@ -41,7 +41,7 @@ Instructions::tst(MemoryT& memory,
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
   StatusRegister state(registers[Registers::status]);
 
-  uint16_t value;
+  uint16_t value = 0;
   if (instruction.mode[0] == Mode::Register) {
 
     if (is_byte_target) {

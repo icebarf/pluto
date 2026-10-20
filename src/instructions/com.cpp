@@ -53,7 +53,7 @@ Instructions::com(MemoryT& memory,
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
   StatusRegister state(registers[Registers::status]);
 
-  uint16_t value;
+  uint16_t value = 0;
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
       uint8_t comp_low_byte = ~(registers[reg_index] & 0x00ff);

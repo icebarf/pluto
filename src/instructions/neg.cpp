@@ -50,18 +50,20 @@ Instructions::neg(MemoryT& memory,
   bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
   StatusRegister state(registers[Registers::status]);
 
+  uint16_t value = 0;
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
-      uint8_t low_byte = registers[reg_index] & 0x00ff;
-      if (low_byte != signed_byte_max_octal) {
-        registers[reg_index] = (registers[reg_index] & 0xff00) | -low_byte;
+      value = registers[reg_index] & 0x00ff;
+      if (value != signed_byte_max_octal) {
+        registers[reg_index] = (registers[reg_index] & 0xff00) | -value;
+        value = -value;
       }
-      set_status(state, registers[reg_index], is_byte_target);
     } else {
+      value = registers[reg_index];
       if (registers[reg_index] != signed_word_max_octal) {
-        registers[reg_index] = -registers[reg_index];
+        registers[reg_index] = -value;
+        value = -value;
       }
-      set_status(state, registers[reg_index], is_byte_target);
     }
   } else {
 
@@ -69,15 +71,14 @@ Instructions::neg(MemoryT& memory,
       memory, registers, instruction.mode[0], reg_index, is_byte_target);
 
     if (is_byte_target) {
-      uint8_t current = read_byte(memory, target_address);
-      current = -current;
-      write_byte(memory, target_address, current);
-      set_status(state, current, is_byte_target);
+      value = read_byte(memory, target_address);
+      value = -value;
+      write_byte(memory, target_address, value);
     } else {
-      uint16_t current = read_word(memory, target_address);
-      current = -current;
-      write_word(memory, target_address, current);
-      set_status(state, current, is_byte_target);
+      value = read_word(memory, target_address);
+      value = -value;
+      write_word(memory, target_address, value);
     }
   }
+  set_status(state, value, is_byte_target);
 }
