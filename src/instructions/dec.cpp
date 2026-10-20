@@ -21,18 +21,21 @@ using namespace Instructions;
 using namespace Types;
 
 void
-set_status(StatusRegister status, uint16_t value, bool is_byte)
+set_status(StatusRegister status,
+           uint16_t value,
+           uint16_t oldvalue,
+           bool is_byte)
 {
   int16_t signed_value = value;
 
   signed_value < 0 ? status.set_negative() : status.unset_negative();
   value == 0 ? status.set_zero() : status.unset_zero();
   if (is_byte) {
-    value >= 0o200 ? status.set_overflow()
-                   : status.unset_overflow(); // 0o200 == 128
+    oldvalue >= 0o200 ? status.set_overflow()
+                      : status.unset_overflow(); // 0o200 == 128
   } else {
-    value >= 0o100000 ? status.set_overflow()
-                      : status.unset_overflow(); // 0o100000 == 32768
+    oldvalue >= 0o100000 ? status.set_overflow()
+                         : status.unset_overflow(); // 0o100000 == 32768
   }
 }
 
@@ -46,13 +49,13 @@ dec(MemoryT& memory, RegistersT& registers, Instruction instruction)
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
       uint8_t low_byte = registers[reg_index] & 0x00ff;
+      set_status(state, low_byte - 1, low_byte, true);
       low_byte--;
       registers[reg_index] = (registers[reg_index] & 0xff) | low_byte;
-      set_status(state, low_byte, true);
     } else {
+      set_status(state, registers[reg_index] - 1, registers[reg_index], false);
       registers[reg_index]--;
       uint16_t result = registers[reg_index];
-      set_status(state, result, false);
     }
   } else {
 
@@ -61,14 +64,14 @@ dec(MemoryT& memory, RegistersT& registers, Instruction instruction)
 
     if (is_byte_target) {
       uint8_t current = read_byte(memory, target_address);
+      set_status(state, current - 1, current, true);
       current--;
       write_byte(memory, target_address, current);
-      set_status(state, current, true);
     } else {
       uint16_t current = read_word(memory, target_address);
+      set_status(state, current - 1, current, false);
       current--;
       write_word(memory, target_address, current);
-      set_status(state, current, false);
     }
   }
 }

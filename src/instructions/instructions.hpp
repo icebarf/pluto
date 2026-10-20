@@ -96,7 +96,12 @@ clr(Types::MemoryT& memory,
 
 void
 dec(Types::MemoryT& memory,
-    Types::RegistersT registers,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+inc(Types::MemoryT& memory,
+    Types::RegistersT& registers,
     Instruction instruction);
 
 } // namespace Instruction
