@@ -31,7 +31,7 @@ set_status(StatusRegister status, uint16_t value, bool is_byte)
     status.set_carry();
 
   if (is_byte) {
-    value >= signed_byte_max_octal
+    (value & 0xff) >= signed_byte_max_octal
       ? status.set_overflow()
       : status.unset_overflow(); // signed_byte_max_octal == 128
   } else {

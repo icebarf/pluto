@@ -31,7 +31,7 @@ set_status(StatusRegister status,
   signed_value < 0 ? status.set_negative() : status.unset_negative();
   value == 0 ? status.set_zero() : status.unset_zero();
   if (is_byte) {
-    oldvalue >= signed_byte_max_octal
+    (oldvalue & 0xff) >= signed_byte_max_octal
       ? status.set_overflow()
       : status.unset_overflow(); // signed_byte_max_octal == 128
   } else {
@@ -55,7 +55,7 @@ Instructions::inc(MemoryT& memory,
       uint8_t low_byte = registers[reg_index] & 0x00ff;
       low_byte++;
       set_status(state, low_byte, registers[reg_index], true);
-      registers[reg_index] = (registers[reg_index] & 0xff) | low_byte;
+      registers[reg_index] = (registers[reg_index] & 0xff00) | low_byte;
     } else {
       set_status(state, registers[reg_index] + 1, registers[reg_index], false);
       registers[reg_index]++;

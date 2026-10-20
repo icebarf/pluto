@@ -114,6 +114,11 @@ tst(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+void
+com(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
 } // namespace Instruction
 
 #endif

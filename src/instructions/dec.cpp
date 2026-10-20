@@ -31,8 +31,9 @@ set_status(StatusRegister status,
   signed_value < 0 ? status.set_negative() : status.unset_negative();
   value == 0 ? status.set_zero() : status.unset_zero();
   if (is_byte) {
-    oldvalue >= signed_byte_max_octal ? status.set_overflow()
-                                      : status.unset_overflow(); // 0o200 == 128
+    (oldvalue & 0xff) >= signed_byte_max_octal
+      ? status.set_overflow()
+      : status.unset_overflow(); // 0o200 == 128
   } else {
     oldvalue >= signed_word_max_octal
       ? status.set_overflow()
