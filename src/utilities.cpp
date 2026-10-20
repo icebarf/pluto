@@ -39,7 +39,7 @@ read_byte(const Types::MemoryT& memory, const uint16_t address)
 }
 
 void
-write_byte(Types::MemoryT& memory, const uint16_t address, const uint16_t value)
+write_byte(Types::MemoryT& memory, const uint16_t address, const uint8_t value)
 {
   memory[address] = value;
 }
