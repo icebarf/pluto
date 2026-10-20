@@ -25,12 +25,15 @@ set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
   int16_t signed_value = value;
 
-  value & 0b1 ? status.set_overflow() : status.unset_overflow();
+  value & 0b1 ? status.set_carry() : status.unset_carry();
   int zero = 0;
   value == 0 ? (zero = 1), status.set_zero() : status.unset_zero();
 
   int negative = 0;
   if (is_byte) {
+    // force masking instead of just checking value is below zero because i dont
+    // want weird issues where bits spill over into the 16-bit int when
+    // operating on bytes, this just feels safe.
     if ((value & 0xff) & 0b1000'0000) {
       negative = 1;
     }
@@ -65,7 +68,7 @@ Instructions::asr(MemoryT& memory,
       // clone the msb, if it's set we manually bitmask and set it, otherwise
       // assume by default on amd64 the MSB will be 0 after a right shift
       if (msb) {
-        value &= 0xff;
+        value &= 0x00ff;
       }
       registers[reg_index] = (registers[reg_index] & 0xff00) | value;
     } else {
@@ -87,7 +90,7 @@ Instructions::asr(MemoryT& memory,
       msb = value >> 7;
       value >>= 1;
       if (msb) {
-        value &= 0xff;
+        value &= 0x00ff;
       }
       write_byte(memory, target_address, value);
     } else {

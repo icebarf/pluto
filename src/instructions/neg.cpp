@@ -55,14 +55,14 @@ Instructions::neg(MemoryT& memory,
     if (is_byte_target) {
       value = registers[reg_index] & 0x00ff;
       if (value != signed_byte_max_octal) {
-        registers[reg_index] = (registers[reg_index] & 0xff00) | -value;
-        value = -value;
+        value = (-value) & 0x00ff;
+        registers[reg_index] = (registers[reg_index] & 0xff00) | value;
       }
     } else {
       value = registers[reg_index];
       if (registers[reg_index] != signed_word_max_octal) {
-        registers[reg_index] = -value;
         value = -value;
+        registers[reg_index] = value;
       }
     }
   } else {
@@ -72,7 +72,7 @@ Instructions::neg(MemoryT& memory,
 
     if (is_byte_target) {
       value = read_byte(memory, target_address);
-      value = -value;
+      value = (-value) & 0x00ff;
       write_byte(memory, target_address, value);
     } else {
       value = read_word(memory, target_address);

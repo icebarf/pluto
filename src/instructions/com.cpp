@@ -56,9 +56,8 @@ Instructions::com(MemoryT& memory,
   uint16_t value = 0;
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
-      uint8_t comp_low_byte = ~(registers[reg_index] & 0x00ff);
-      registers[reg_index] = (registers[reg_index] & 0xff00) | comp_low_byte;
-      value = comp_low_byte;
+      value = ~(registers[reg_index] & 0x00ff);
+      registers[reg_index] = (registers[reg_index] & 0xff00) | (value & 0x00ff);
     } else {
       registers[reg_index] = ~registers[reg_index];
       value = registers[reg_index];
@@ -69,15 +68,13 @@ Instructions::com(MemoryT& memory,
       memory, registers, instruction.mode[0], reg_index, is_byte_target);
 
     if (is_byte_target) {
-      uint8_t current = read_byte(memory, target_address);
-      current = ~current;
-      write_byte(memory, target_address, current);
-      value = current;
+      value = read_byte(memory, target_address);
+      value = ~value;
+      write_byte(memory, target_address, value & 0x00ff);
     } else {
-      uint16_t current = read_word(memory, target_address);
-      current = ~current;
-      write_word(memory, target_address, current);
-      value = current;
+      value = read_word(memory, target_address);
+      value = ~value;
+      write_word(memory, target_address, value);
     }
   }
   set_status(state, value, is_byte_target);

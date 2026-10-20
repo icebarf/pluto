@@ -55,7 +55,7 @@ Instructions::dec(MemoryT& memory,
   if (instruction.mode[0] == Mode::Register) {
     if (is_byte_target) {
       oldvalue = registers[reg_index] & 0x00ff;
-      value = oldvalue - 1;
+      value = (oldvalue - 1) & 0x00ff;
       registers[reg_index] = (registers[reg_index] & 0xff00) | value;
     } else {
       value = registers[reg_index]--;
@@ -68,7 +68,7 @@ Instructions::dec(MemoryT& memory,
 
     if (is_byte_target) {
       oldvalue = read_byte(memory, target_address);
-      value = oldvalue - 1;
+      value = (oldvalue - 1) & 0x00ff;
       write_byte(memory, target_address, value);
     } else {
       oldvalue = read_word(memory, target_address);
