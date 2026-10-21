@@ -50,43 +50,17 @@ Instructions::sbc(MemoryT& memory,
                   Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
-  bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
+  bool is_byte = (instruction.dest_type == DestinationType::Byte);
+  Instructions::Mode mode = instruction.mode[0];
   StatusRegister state(registers[Registers::status]);
 
   uint16_t value = 0;
-  uint16_t oldvalue = 0;
-  if (instruction.mode[0] == Mode::Register) {
-    if (is_byte_target) {
-      oldvalue = registers[reg_index] & 0x00ff;
-      if (state.get_carry()) {
-        value = (oldvalue - 1) & 0x00ff;
-      }
-      registers[reg_index] = (registers[reg_index] & 0xff00) | value;
-    } else {
-      oldvalue = registers[reg_index];
-      if (state.get_carry()) {
-        value = oldvalue - 1;
-      }
-      registers[reg_index] = value;
-    }
-  } else {
-
-    uint16_t target_address = get_operand_address(
-      memory, registers, instruction.mode[0], reg_index, is_byte_target);
-
-    if (is_byte_target) {
-      oldvalue = read_byte(memory, target_address);
-      if (state.get_carry()) {
-        value = (oldvalue - 1) & 0x00ff;
-      }
-      write_byte(memory, target_address, value);
-    } else {
-      oldvalue = read_word(memory, target_address);
-      if (state.get_carry()) {
-        value = oldvalue - 1;
-      }
-      write_word(memory, target_address, value);
-    }
+  uint16_t oldvalue =
+    get_operand_value(memory, registers, reg_index, mode, is_byte);
+  if (state.get_carry()) {
+    value = oldvalue - 1;
   }
-  set_status(state, value, oldvalue, is_byte_target);
+  set_operand_value(value, memory, registers, reg_index, mode, is_byte);
+
+  set_status(state, value, oldvalue, is_byte);
 }
