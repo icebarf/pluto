@@ -173,6 +173,11 @@ rol(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+void
+swab(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
 } // namespace Instructions
 
 #endif
