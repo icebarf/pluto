@@ -159,9 +159,10 @@ StatusRegister::unset_trap()
 void
 StatusRegister::set_priority(int value)
 {
-
-  uint16_t tmp = 0xffff & (value << 5);
-  status_register = status_register & tmp;
+  uint16_t status =
+    this->status_register & 0b0000'0000'0001'1111; // preserve status
+  this->status_register = 0xffff & (value << 5);
+  this->status_register = this->status_register & (0xffff & status);
 }
 
 uint16_t
