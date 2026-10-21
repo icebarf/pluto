@@ -85,6 +85,15 @@ extract(uint16_t word)
   return instruction;
 }
 
+/* Status Register Bit positions for each status flag */
+constexpr uint8_t carry_bit_pos = 0;
+constexpr uint8_t overflow_bit_pos = 1;
+constexpr uint8_t zero_bit_pos = 2;
+constexpr uint8_t negative_bit_pos = 3;
+constexpr uint8_t trap_bit_pos = 4;
+constexpr uint8_t priority_bits_pos = 5;
+
+/* Masks to set/unset each status flag */
 constexpr uint16_t CARRY_SET = 0b0000'0000'0000'0001;
 constexpr uint16_t CARRY_UNSET = 0b1111'1111'1111'1110;
 constexpr uint16_t OVERFLOW_SET = 0b0000'0000'0000'0010;
@@ -163,6 +172,42 @@ StatusRegister::set_priority(int value)
     this->status_register & 0b0000'0000'0001'1111; // preserve status
   this->status_register = 0xffff & (value << 5);
   this->status_register = this->status_register & (0xffff & status);
+}
+
+bool
+StatusRegister::get_carry() const
+{
+  return this->status_register & 0b1;
+}
+
+bool
+StatusRegister::get_overflow() const
+{
+  return (this->status_register >> overflow_bit_pos) & 0b1;
+}
+
+bool
+StatusRegister::get_zero() const
+{
+  return (this->status_register >> zero_bit_pos) & 0b1;
+}
+
+bool
+StatusRegister::get_negative() const
+{
+  return (this->status_register >> negative_bit_pos) & 0b1;
+}
+
+bool
+StatusRegister::get_trap() const
+{
+  return (this->status_register >> trap_bit_pos) & 0b1;
+}
+
+int
+StatusRegister::get_priority() const
+{
+  return (this->status_register >> priority_bits_pos) & 0b111;
 }
 
 uint16_t

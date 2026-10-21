@@ -76,6 +76,14 @@ public:
   void set_trap();
   void unset_trap();
   void set_priority(int value);
+
+  // getters
+  bool get_carry() const;
+  bool get_overflow() const;
+  bool get_zero() const;
+  bool get_negative() const;
+  bool get_trap() const;
+  int get_priority() const;
 };
 
 Instruction
@@ -126,6 +134,11 @@ asr(Types::MemoryT& memory,
 
 void
 asl(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+sbc(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
