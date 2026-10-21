@@ -147,6 +147,16 @@ sbc(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
-} // namespace Instruction
+void
+ror(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+rol(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+} // namespace Instructions
 
 #endif

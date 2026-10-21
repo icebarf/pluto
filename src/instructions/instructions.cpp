@@ -211,11 +211,11 @@ StatusRegister::get_priority() const
 }
 
 uint16_t
-get_operand_address(const Types::MemoryT& memory,
-                    Types::RegistersT& registers,
-                    Mode mode,
-                    uint8_t reg,
-                    bool is_byte)
+Instructions::get_operand_address(const Types::MemoryT& memory,
+                                  Types::RegistersT& registers,
+                                  Mode mode,
+                                  uint8_t reg,
+                                  bool is_byte)
 {
   uint16_t address = 0;
   switch (mode) {
