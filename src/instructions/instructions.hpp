@@ -138,7 +138,7 @@ asl(Types::MemoryT& memory,
     Instruction instruction);
 
 void
-sbc(Types::MemoryT& memory,
+adc(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 

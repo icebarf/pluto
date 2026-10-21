@@ -47,7 +47,7 @@ set_status(StatusRegister status,
 }
 
 void
-Instructions::sbc(MemoryT& memory,
+Instructions::adc(MemoryT& memory,
                   RegistersT& registers,
                   Instruction instruction)
 {
