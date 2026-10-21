@@ -265,7 +265,7 @@ Instructions::get_operand_address(const Types::MemoryT& memory,
 [[nodiscard]] uint16_t
 Instructions::get_operand_value(Types::MemoryT& memory,
                                 Types::RegistersT& registers,
-                                uint16_t reg_index,
+                                uint8_t reg_index,
                                 Instructions::Mode mode,
                                 bool is_byte)
 {
@@ -292,7 +292,7 @@ void
 Instructions::set_operand_value(uint16_t value,
                                 Types::MemoryT& memory,
                                 Types::RegistersT& registers,
-                                uint16_t reg_index,
+                                uint8_t reg_index,
                                 Instructions::Mode mode,
                                 bool is_byte)
 {
