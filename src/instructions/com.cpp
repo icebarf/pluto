@@ -48,32 +48,14 @@ Instructions::com(MemoryT& memory,
                   Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
-  bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
+  bool is_byte = (instruction.dest_type == DestinationType::Byte);
+  Instructions::Mode mode = instruction.mode[0];
   StatusRegister state(registers[Registers::status]);
 
-  uint16_t value = 0;
-  if (instruction.mode[0] == Mode::Register) {
-    if (is_byte_target) {
-      value = ~(registers[reg_index] & 0x00ff);
-      registers[reg_index] = (registers[reg_index] & 0xff00) | (value & 0x00ff);
-    } else {
-      registers[reg_index] = ~registers[reg_index];
-      value = registers[reg_index];
-    }
-  } else {
+  uint16_t value =
+    get_operand_value(memory, registers, reg_index, mode, is_byte);
+  value = ~value;
+  set_operand_value(value, memory, registers, reg_index, mode, is_byte);
 
-    uint16_t target_address = get_operand_address(
-      memory, registers, instruction.mode[0], reg_index, is_byte_target);
-
-    if (is_byte_target) {
-      value = read_byte(memory, target_address);
-      value = ~value;
-      write_byte(memory, target_address, value & 0x00ff);
-    } else {
-      value = read_word(memory, target_address);
-      value = ~value;
-      write_word(memory, target_address, value);
-    }
-  }
-  set_status(state, value, is_byte_target);
+  set_status(state, value, is_byte);
 }
