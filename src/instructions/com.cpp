@@ -23,8 +23,6 @@ using namespace Types;
 void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  int16_t signed_value = value;
-
   status.unset_overflow();
   status.set_carry();
   value == 0 ? status.set_zero() : status.unset_zero();
@@ -36,7 +34,7 @@ set_status(StatusRegister status, uint16_t value, bool is_byte)
       status.unset_negative();
     }
   } else {
-    if (signed_value & 0b1000'0000'0000'0000) {
+    if (value & 0b1000'0000'0000'0000) {
       status.set_negative();
     } else {
       status.unset_negative();

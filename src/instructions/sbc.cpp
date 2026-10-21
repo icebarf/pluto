@@ -27,7 +27,7 @@ set_status(StatusRegister status,
            bool is_byte)
 {
   int16_t signed_value = value;
-  signed_value < 1 ? status.set_negative() : status.unset_negative();
+  signed_value < 0 ? status.set_negative() : status.unset_negative();
   value == 0 ? status.set_zero() : status.unset_zero();
 
   (value == 0) && status.get_carry() ? status.set_carry()
