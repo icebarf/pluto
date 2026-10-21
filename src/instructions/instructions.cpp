@@ -261,3 +261,55 @@ Instructions::get_operand_address(const Types::MemoryT& memory,
   }
   return address;
 }
+
+[[nodiscard]] uint16_t
+Instructions::get_operand_value(Types::MemoryT& memory,
+                                Types::RegistersT& registers,
+                                uint16_t reg_index,
+                                Instructions::Mode mode,
+                                bool is_byte)
+{
+  uint16_t value;
+  if (mode == Mode::Register) {
+    if (is_byte) {
+      value = registers[reg_index] & 0x00ff;
+    } else {
+      value = registers[reg_index];
+    }
+  } else {
+    uint16_t target_address =
+      get_operand_address(memory, registers, mode, reg_index, is_byte);
+    if (is_byte) {
+      value = read_byte(memory, target_address);
+    } else {
+      value = read_word(memory, target_address);
+    }
+  }
+  return value;
+}
+
+void
+Instructions::set_operand_value(uint16_t value,
+                                Types::MemoryT& memory,
+                                Types::RegistersT& registers,
+                                uint16_t reg_index,
+                                Instructions::Mode mode,
+                                bool is_byte)
+{
+  if (mode == Mode::Register) {
+    if (is_byte) {
+      registers[reg_index] = (registers[reg_index] & 0xff00) | value;
+    } else {
+      registers[reg_index] = value;
+    }
+
+  } else {
+    uint16_t target_address =
+      get_operand_address(memory, registers, mode, reg_index, is_byte);
+    if (is_byte) {
+      write_byte(memory, target_address, value);
+    } else {
+      write_word(memory, target_address, value);
+    }
+  }
+}
