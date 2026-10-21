@@ -142,6 +142,11 @@ adc(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+void
+sbc(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
 } // namespace Instruction
 
 #endif
