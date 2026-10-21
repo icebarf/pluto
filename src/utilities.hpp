@@ -20,8 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "types.hpp"
 
-constexpr int signed_byte_max_octal = 0o200;
-constexpr int signed_word_max_octal = 0o100000;
+constexpr int signed_byte_max_octal = 0200;
+constexpr int signed_word_max_octal = 0100000;
 
 uint16_t
 read_word(const Types::MemoryT& memory, const uint16_t address);
