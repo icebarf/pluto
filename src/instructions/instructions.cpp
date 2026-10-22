@@ -55,7 +55,7 @@ extract_double_operand_instruction(uint16_t word)
 };
 
 Instruction
-extract(uint16_t word)
+Instructions::extract(uint16_t word)
 {
   uint8_t digit_1 =
     (word >> 12) &
