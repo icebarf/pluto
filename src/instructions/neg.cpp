@@ -24,9 +24,7 @@ static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
   status.set_negative_zero(value, is_byte);
-  if (status.get_zero()) {
-    status.set_carry();
-  }
+  value == 0 ? status.unset_carry() : status.set_carry();
 
   if (is_byte) {
     (value & 0xff) == signed_byte_max_octal
