@@ -49,17 +49,19 @@ Instructions::adc(MemoryT& memory,
                   Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
-  bool is_byte = (instruction.dest_type == DestinationType::Byte);
+  bool is_byte = instruction.dest_type == DestinationType::Byte;
   Instructions::Mode mode = instruction.mode[0];
   StatusRegister state(registers[Registers::status]);
+  Operand operand =
+    resolve_operand(memory, registers, reg_index, mode, is_byte);
 
   uint16_t value = 0;
   uint16_t oldvalue = 0;
 
-  oldvalue = get_operand_value(memory, registers, reg_index, mode, is_byte);
+  oldvalue = read_operand(memory, registers, operand, is_byte);
   if (state.get_carry()) {
     value = oldvalue + 1;
   }
-  set_operand_value(value, memory, registers, reg_index, mode, is_byte);
+  write_operand(memory, registers, operand, value, is_byte);
   set_status(state, value, oldvalue, is_byte);
 }

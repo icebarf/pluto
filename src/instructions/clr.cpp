@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "../utilities.hpp"
 #include "instructions.hpp"
 
 using namespace Instructions;
@@ -26,18 +25,11 @@ Instructions::clr(MemoryT& memory,
                   Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
-  bool is_byte_target = (instruction.dest_type == DestinationType::Byte);
-
-  if (instruction.mode[0] == Mode::Register) {
-    is_byte_target ? registers[reg_index] &= 0xff00 : registers[reg_index] = 0;
-  } else {
-
-    uint16_t target_address = get_operand_address(
-      memory, registers, instruction.mode[0], reg_index, is_byte_target);
-
-    is_byte_target ? write_byte(memory, target_address, 0)
-                   : write_word(memory, target_address, 0);
-  }
+  bool is_byte = instruction.dest_type == DestinationType::Byte;
+  Instructions::Mode mode = instruction.mode[0];
+  Operand operand =
+    resolve_operand(memory, registers, reg_index, mode, is_byte);
+  write_operand(memory, registers, operand, 0, is_byte);
 
   StatusRegister state(registers[Registers::status]);
   state.unset_carry();

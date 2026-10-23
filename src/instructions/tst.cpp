@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "../utilities.hpp"
 #include "instructions.hpp"
 
 using namespace Instructions;
@@ -37,8 +36,9 @@ Instructions::tst(MemoryT& memory,
   bool is_byte = (instruction.dest_type == DestinationType::Byte);
   Instructions::Mode mode = instruction.mode[0];
   StatusRegister state(registers[Registers::status]);
+  Operand operand =
+    resolve_operand(memory, registers, reg_index, mode, is_byte);
 
-  uint16_t value =
-    get_operand_value(memory, registers, reg_index, mode, is_byte);
+  uint16_t value = read_operand(memory, registers, operand, is_byte);
   set_status(state, value, is_byte);
 }

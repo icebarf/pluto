@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "../utilities.hpp"
 #include "instructions.hpp"
 
 using namespace Instructions;
@@ -36,16 +35,18 @@ Instructions::ror(MemoryT& memory,
                   Instruction instruction)
 {
   uint16_t reg_index = instruction.destination[0];
-  bool is_byte = (instruction.dest_type == DestinationType::Byte);
+  bool is_byte = instruction.dest_type == DestinationType::Byte;
   Instructions::Mode mode = instruction.mode[0];
   StatusRegister state(registers[Registers::status]);
+  Operand operand =
+    resolve_operand(memory, registers, reg_index, mode, is_byte);
 
   uint16_t value = 0;
   uint16_t lsb = 0;
   uint16_t bitmask = 0b1000'0000;
   uint16_t target_address = 0;
 
-  value = get_operand_value(memory, registers, reg_index, mode, is_byte);
+  value = read_operand(memory, registers, operand, is_byte);
   if (!is_byte) {
     bitmask = 0b1000'0000'0000'0000;
   }
@@ -54,7 +55,7 @@ Instructions::ror(MemoryT& memory,
   if (state.get_carry()) {
     value |= bitmask;
   }
-  set_operand_value(value, memory, registers, reg_index, mode, is_byte);
+  write_operand(memory, registers, operand, value, is_byte);
 
   if (lsb) {
     state.set_carry();
