@@ -53,9 +53,11 @@ enum class DestinationType
 struct Instruction
 {
   uint16_t opcode;
-  Registers destination[2];
+  bool is_double;
+  Registers
+    destination[2]; // for double operands: [0] -> destination, [1] -> source
   DestinationType dest_type;
-  Mode mode[2];
+  Mode mode[2]; // [0] -> destination, [1] -> source
 };
 
 struct StatusRegister

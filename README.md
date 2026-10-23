@@ -12,7 +12,7 @@ Boot Unix v2.
 
 ## AI Disclosure
 
-All the code in this project is human written. AI usage is kept very minimal, but not avoided.
+AI usage is kept very minimal, but not avoided.
 
 Areas where I have used LLMs so far:
 - Google search results and conversing with the agent in the AI summary (used mostly for specific details in implementing KA11 Instructions).

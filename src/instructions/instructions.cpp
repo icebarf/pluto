@@ -55,33 +55,36 @@ extract_double_operand_instruction(uint16_t word)
 };
 
 Instruction
-Instructions::extract(uint16_t word)
+Instructions::extract(const uint16_t word)
 {
-  uint8_t digit_1 =
-    (word >> 12) &
-    0b0000'0111; // we also turn off the bit for byte/word detection
+  Instruction instruction{};
+  const uint16_t group = word & 0x7000;
 
-  DestinationType type = [word]() {
-    if (word >> 15)
-      return DestinationType::Byte;
-    else
-      return DestinationType::Word;
-  }();
+  if (group == 0) { // single operand
+    instruction.is_double = false;
+    instruction.opcode = (word >> 6) & 0x01ff;
+    instruction.destination[0] = static_cast<Registers>(word & 0x07);
+    instruction.mode[0] = static_cast<Mode>((word >> 3) & 0x07);
+    instruction.dest_type =
+      (word & 0x8000) ? DestinationType::Byte : DestinationType::Word;
 
-  bool double_operand = false;
+  } else if (group <= 060000) { // double operand, 01..06 / 16
+    instruction.is_double = true;
+    instruction.opcode = word >> 12; // 001..006, 011..015, 016
+    instruction.destination[0] = static_cast<Registers>(word & 0x07);
+    instruction.mode[0] = static_cast<Mode>((word >> 3) & 0x07);
+    instruction.destination[1] = static_cast<Registers>((word >> 6) & 0x07);
+    instruction.mode[1] = static_cast<Mode>((word >> 9) & 0x07);
 
-  if (digit_1 >= 1 && digit_1 <= 6) {
-    double_operand = true;
+    bool byte_op = instruction.opcode >= 011 && instruction.opcode <= 015;
+    instruction.dest_type =
+      byte_op ? DestinationType::Byte : DestinationType::Word;
+
+  } else { // 07/17: EIS, illegal on 11/20
+    instruction.is_double = false;
+    instruction.opcode = word >> 12;
+    instruction.dest_type = DestinationType::Word;
   }
-
-  Instruction instruction;
-  if (double_operand) {
-    instruction = extract_double_operand_instruction(word);
-  } else {
-    instruction = extract_single_operand_instruction(word);
-  }
-
-  instruction.dest_type = type;
   return instruction;
 }
 
