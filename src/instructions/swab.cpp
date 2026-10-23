@@ -24,7 +24,7 @@ set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
   status.unset_overflow();
   status.unset_carry();
-  value == 0 ? status.set_zero() : status.unset_zero();
+  (value & 0x00ff) == 0 ? status.set_zero() : status.unset_zero();
   uint8_t lower = value & 0xff;
   if (lower >> 7) {
     status.set_negative();
