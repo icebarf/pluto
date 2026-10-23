@@ -59,20 +59,20 @@ public:
 enum Mode
 {
   // For general registers && SP (Direct)
-  Register = 0b0,
-  AutoIncrement = 0b0000'0010,
-  AutoDecrement = 0b0000'0100,
-  Index = 0b0000'0110,
+  Register = 0b0,              // 0
+  AutoIncrement = 0b0000'0010, // 2
+  AutoDecrement = 0b0000'0100, // 4
+  Index = 0b0000'0110,         // 6
   // For general registers && SP (Indirect)
-  RegisterDeferred = 0b1,
-  AutoIncrementDeferred = 0b0000'0011,
-  AutoDecrementDeferred = 0b0000'0101,
-  IndexDeferred = 0b0000'0111,
+  RegisterDeferred = 0b1,              // 1
+  AutoIncrementDeferred = 0b0000'0011, // 3
+  AutoDecrementDeferred = 0b0000'0101, // 5
+  IndexDeferred = 0b0000'0111,         // 7
   // FOR PC
-  Immediate = 0b0000'0010,
-  Absolute = 0b0000'0011,
-  Relative = 0b0000'0110,
-  RelativeDeferred = 0b0000'0111,
+  Immediate = 0b0000'0010,        // 2
+  Absolute = 0b0000'0011,         // 3
+  Relative = 0b0000'0110,         // 6
+  RelativeDeferred = 0b0000'0111, // 7
 };
 
 enum class DestinationType

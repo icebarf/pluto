@@ -173,26 +173,6 @@ StatusRegister::set_negative_zero(uint16_t value, bool is_byte)
 
 // Refer PDP11/20 Handbook pdf chapter 3.1 and 3.2 for instruction layouts for
 // single operand addressing and double operand addressing
-
-static inline Instruction
-extract_single_operand_instruction(uint16_t word)
-{
-  return Instruction{ .opcode = static_cast<uint16_t>((word >> 6)),
-                      .destination = { static_cast<Registers>(word & 0x07) },
-                      .mode = { static_cast<Mode>((word >> 3) & 0x7) } };
-};
-
-static inline Instruction
-extract_double_operand_instruction(uint16_t word)
-{
-  return Instruction{ .opcode = static_cast<uint16_t>((word >> 12) & 0x7),
-                      .destination = { static_cast<Registers>(word & 0x07),
-                                       static_cast<Registers>((word >> 6) &
-                                                              0x7) },
-                      .mode = { static_cast<Mode>((word >> 3) & 0x7),
-                                static_cast<Mode>((word >> 9) & 0x7) } };
-};
-
 Instruction
 Instructions::extract(const uint16_t word)
 {
@@ -236,39 +216,51 @@ Instructions::get_operand_address(const Types::MemoryT& memory,
 {
   uint16_t address = 0;
   switch (mode) {
+    // SP
     case RegisterDeferred: {
       address = registers[reg];
     } break;
 
+    // also Immediate (PC)
     case AutoIncrement: {
       address = registers[reg];
-      registers[reg] += (!is_byte || reg >= 6) ? 2 : 1;
+      registers[reg] +=
+        (!is_byte || reg >= 6) ? 2 : 1; // handles 6 = SP, 7 = PC
     } break;
+    // also Aboslute (PC) and for SP
     case AutoIncrementDeferred: {
       address = read_word(memory, registers[reg]);
       registers[reg] += 2;
     } break;
 
+    // General Registers (incl. SP & PC)
     case AutoDecrement: {
-      registers[reg] -= (!is_byte || reg >= 6) ? 2 : 1;
+      registers[reg] -=
+        (!is_byte || reg >= 6) ? 2 : 1; // handles 6 = SP, 7 = PC
       address = registers[reg];
     } break;
+
+    // for SP
     case AutoDecrementDeferred: {
       registers[reg] -= 2;
       address = read_word(memory, registers[reg]);
     } break;
 
+    // also Relative (PC)
     case Index: {
+      // offset exists in the word following the current instruction
       uint16_t offset =
-        read_word(memory, registers[Types::Registers::program_counter]);
-      registers[Types::Registers::program_counter] += 2;
+        read_word(memory, registers[Registers::program_counter]);
+      // move the PC past the offset/index value
+      registers[Registers::program_counter] += 2;
       address = registers[reg] + offset;
     } break;
 
+    // also RelativeDeferred (PC) and for SP
     case IndexDeferred: {
       uint16_t offset =
-        read_word(memory, registers[Types::Registers::program_counter]);
-      registers[Types::Registers::program_counter] += 2;
+        read_word(memory, registers[Registers::program_counter]);
+      registers[Registers::program_counter] += 2;
       address = read_word(memory, registers[reg] + offset);
     } break;
 
