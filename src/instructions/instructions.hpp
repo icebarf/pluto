@@ -25,6 +25,34 @@ namespace Instructions {
 
 using Types::Registers;
 
+struct StatusRegister
+{
+private:
+  uint16_t& status_register;
+
+public:
+  StatusRegister(uint16_t& status);
+  void set_carry();
+  void unset_carry();
+  void set_overflow();
+  void unset_overflow();
+  void set_zero();
+  void unset_zero();
+  void set_negative();
+  void unset_negative();
+  void set_trap();
+  void unset_trap();
+  void set_priority(int value);
+
+  // getters
+  bool get_carry() const;
+  bool get_overflow() const;
+  bool get_zero() const;
+  bool get_negative() const;
+  bool get_trap() const;
+  int get_priority() const;
+};
+
 enum Mode
 {
   // For general registers && SP (Direct)
@@ -58,34 +86,6 @@ struct Instruction
     destination[2]; // for double operands: [0] -> destination, [1] -> source
   DestinationType dest_type;
   Mode mode[2]; // [0] -> destination, [1] -> source
-};
-
-struct StatusRegister
-{
-private:
-  uint16_t& status_register;
-
-public:
-  StatusRegister(uint16_t& status);
-  void set_carry();
-  void unset_carry();
-  void set_overflow();
-  void unset_overflow();
-  void set_zero();
-  void unset_zero();
-  void set_negative();
-  void unset_negative();
-  void set_trap();
-  void unset_trap();
-  void set_priority(int value);
-
-  // getters
-  bool get_carry() const;
-  bool get_overflow() const;
-  bool get_zero() const;
-  bool get_negative() const;
-  bool get_trap() const;
-  int get_priority() const;
 };
 
 Instruction
