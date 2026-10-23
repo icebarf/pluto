@@ -23,7 +23,6 @@ using namespace Types;
 void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  value >> 15 ? status.set_carry() : status.unset_carry();
   int zero = 0;
   value == 0 ? (zero = 1), status.set_zero() : status.unset_zero();
 
@@ -58,9 +57,20 @@ Instructions::asl(MemoryT& memory,
   StatusRegister state(registers[Registers::status]);
 
   uint16_t value = 0;
+  uint8_t msb = 0;
   value = get_operand_value(memory, registers, reg_index, mode, is_byte);
+  if (is_byte) {
+    msb = (value >> 7) & 0b1;
+  } else {
+    msb = (value >> 15) & 0b1;
+  }
   value <<= 1;
   set_operand_value(value, memory, registers, reg_index, mode, is_byte);
 
+  if (msb) {
+    state.set_carry();
+  } else {
+    state.unset_carry();
+  }
   set_status(state, value, is_byte);
 }

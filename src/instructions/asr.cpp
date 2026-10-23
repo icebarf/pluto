@@ -62,19 +62,20 @@ Instructions::asr(MemoryT& memory,
   value = get_operand_value(memory, registers, reg_index, mode, is_byte);
   lsb = value & 0b1;
   if (is_byte) {
-    msb = (value >> 7) & 0xff;
+    msb = (value >> 7) & 0b1;
   } else {
-    msb = (value >> 15) & 0xffff;
+    msb = (value >> 15) & 0b1;
   }
 
   value >>= 1;
-  if (msb) {
+  if (msb) { // replicate bit-15/7
     if (is_byte) {
       value = value | (1 << 7);
     } else {
       value = value | (1 << 15);
     }
   }
+
   set_operand_value(value, memory, registers, reg_index, mode, is_byte);
 
   if (lsb) {
