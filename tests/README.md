@@ -38,21 +38,47 @@ individual failing assertions and their values.
 
 ## Layout
 
-| File | Purpose |
+Tests are grouped by category, following the handbook's single-operand
+sections.
+
+```text
+tests/
+├── CMakeLists.txt
+├── main.cpp
+├── support/
+│   └── test_framework.hpp
+├── decode/
+│   └── test_extract.cpp
+├── addressing/
+│   └── test_addressing.cpp
+├── operand/
+│   └── test_operand.cpp
+└── instructions/
+    └── single_operand/
+        ├── general/
+        │   ├── test_clr.cpp
+        │   ├── test_com.cpp
+        │   ├── test_inc_dec.cpp
+        │   ├── test_neg.cpp
+        │   └── test_tst.cpp
+        ├── multiple_precision/
+        │   └── test_adc_sbc.cpp
+        ├── shift_rotate/
+        │   └── test_shifts.cpp
+        └── byte_swap/
+            └── test_swab.cpp
+```
+
+| Directory | Contents |
 | --- | --- |
-| `test_framework.hpp` | Minimal test registry, assertions, `TestMachine`, instruction encoder |
-| `main.cpp` | Runs all registered tests and prints a checkmark per test |
-| `test_extract.cpp` | Decode of the single-operand format (and SUB/MOVB classification guards) |
-| `test_clr.cpp` | CLR/CLRB |
-| `test_com.cpp` | COM/COMB |
-| `test_inc_dec.cpp` | INC/INCB and DEC/DECB |
-| `test_neg.cpp` | NEG/NEGB |
-| `test_tst.cpp` | TST/TSTB |
-| `test_adc_sbc.cpp` | ADC/ADCB and SBC/SBCB |
-| `test_shifts.cpp` | ASL/ASLB, ASR/ASRB, ROL/ROLB, ROR/RORB |
-| `test_swab.cpp` | SWAB |
-| `test_addressing.cpp` | Byte/word step sizes, SP/PC rules, deferred modes, index PC handling |
-| `test_operand.cpp` | `resolve_operand` / `read_operand` / `write_operand` semantics |
+| `support/` | Minimal test registry, assertions, `TestMachine`, instruction encoder |
+| `decode/` | Single-operand instruction format (and SUB/MOVB classification guards) |
+| `addressing/` | Byte/word step sizes, SP/PC rules, deferred modes, index PC handling |
+| `operand/` | `resolve_operand` / `read_operand` / `write_operand` semantics |
+| `instructions/single_operand/general/` | CLR/CLRB, COM/COMB, INC/INCB, DEC/DECB, NEG/NEGB, TST/TSTB |
+| `instructions/single_operand/multiple_precision/` | ADC/ADCB, SBC/SBCB |
+| `instructions/single_operand/shift_rotate/` | ASL/ASLB, ASR/ASRB, ROL/ROLB, ROR/RORB |
+| `instructions/single_operand/byte_swap/` | SWAB |
 
 Tests use `CODE = 01000`, `DATA = 02000` and `TARGET = 03000` so that test data
 cannot overlap the instruction word. `execute()` writes the instruction at
@@ -62,12 +88,10 @@ before calling the implementation.
 ## Current result
 
 ```text
-118 passed, 4 failed, 122 total
+122 passed, 0 failed, 122 total
 ```
 
-The only remaining failures are the four ADC/ADCB flag-boundary tests described
-below. All other single-operand instruction, addressing and operand-helper
-tests pass.
+All single-operand instruction, addressing and operand-helper tests pass.
 
 ## ISA coverage
 
@@ -82,7 +106,7 @@ Condition-code expectations are taken from the 1972 PDP-11/20 Handbook in
 | DEC / DECB | 43 | 8 | 8 | N/Z; V only at old `100000` / `0200`; C unaffected; wrap; byte step 1 |
 | NEG / NEGB | 45 | 8 | 8 | N/Z; V at result `100000` / `0200`; C = result != 0; byte high byte preserved; memory autoincrement |
 | TST / TSTB | 46 | 6 | 6 | N/Z from operand, V=0 C=0; no write; byte zero ignores high byte |
-| ADC / ADCB | 52 | 8 | 4 | C=0 retains destination; C=1 adds one; C/V boundaries |
+| ADC / ADCB | 52 | 8 | 8 | C=0 retains destination; C=1 adds one; C/V boundaries |
 | SBC / SBCB | 53 | 10 | 10 | C=0 retains destination; C=1 subtracts one; result 0 clears C; borrow; V; N/Z |
 | ASL / ASLB | 50 | 6 | 6 | C = old bit 15/7; V = N xor C; N/Z; byte high byte preserved |
 | ASR / ASRB | 49 | 7 | 7 | C = old bit 0; sign replication; V = N xor C; N/Z; byte high byte preserved |
@@ -113,9 +137,10 @@ For byte operations, “negative” is bit 7 and “zero” is the low byte bein
 | ROR / RORB | result < 0 | result = 0 | N xor C | old bit 0 |
 | SWAB | result bit 7 | low byte = 0 | 0 | 0 |
 
-## Remaining failure: ADC/ADCB V and C
+## ADC/ADCB flag reference
 
-Handbook page 52:
+ADC is the most error-prone flag set, so the four boundary cases are kept as
+regression tests. Handbook page 52:
 
 ```text
 Operation: (dst) <- (dst) + (C)
@@ -126,7 +151,7 @@ V: set if (dst) was 077777 and (C) was 1; cleared otherwise
 C: set if (dst) was 177777 and (C) was 1; cleared otherwise
 ```
 
-The byte forms use `0177` for V and `0377` for C. The four test cases are:
+The byte forms use `0177` for V and `0377` for C. The guarded cases are:
 
 | Test | Old (dst) | C in | Result | V | C |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -135,83 +160,27 @@ The byte forms use `0177` for V and `0377` for C. The four test cases are:
 | `adc_byte_overflow` | `0177` | 1 | `0200` | 1 | 0 |
 | `adc_byte_carry_out` | `0377` | 1 | 0 | 0 | 1 |
 
-Current `src/instructions/adc.cpp`:
+All four pass. The implementation must use the **incoming** carry and the old
+destination value. The result-based formulations (V when result is
+`100000`/`0200`, C when result is 0) are equivalent only when C in is 1; using
+the outgoing carry for V is incorrect.
 
-```cpp
-status.set_negative_zero(value, is_byte);
-(oldvalue == 0177777) && status.get_carry()
-  ? status.set_carry()
-  : status.unset_carry();
+## Previously reported issues now covered
 
-if (is_byte) {
-  ((oldvalue & 0xff) == 0177) && status.get_carry()
-    ? status.set_overflow()
-    : status.unset_overflow();
-} else {
-  (oldvalue == 0177777) && status.get_carry()
-    ? status.set_overflow()
-    : status.unset_overflow();
-}
-```
-
-There are three errors:
-
-1. **Word V uses `0177777` instead of `077777`.** This makes
-   `adc_word_overflow` clear V (expected set), and makes
-   `adc_word_carry_out` set V spuriously (expected clear).
-2. **V reads `status.get_carry()` after C has already been updated.** It sees
-   the outgoing carry, not the incoming carry. For `adc_byte_overflow`
-   (`old = 0177`, C in = 1) the outgoing carry is 0, so V is cleared.
-3. **Byte C compares the whole word with `0177777`.** For `adc_byte_carry_out`
-   (`old = 0377`, C in = 1) the comparison is false, so C is not set.
-
-### Suggested minimal fix
-
-Capture the incoming carry before changing C, use the operand-size mask, and
-test the old destination value:
-
-```cpp
-static void
-set_status(StatusRegister status,
-           uint16_t value,
-           uint16_t oldvalue,
-           bool is_byte)
-{
-  const bool carry_in = status.get_carry();
-  const uint16_t mask = is_byte ? 0x00ff : 0xffff;
-  const uint16_t sign = is_byte ? 0x0080 : 0x8000;
-
-  status.set_negative_zero(value, is_byte);
-
-  (carry_in && ((oldvalue & mask) == mask))
-    ? status.set_carry()
-    : status.unset_carry();
-
-  (carry_in && ((oldvalue & mask) == static_cast<uint16_t>(sign - 1)))
-    ? status.set_overflow()
-    : status.unset_overflow();
-}
-```
-
-`sign - 1` is `077777` for word and `0177` for byte. The rest of `adc()`
-(including the new C=0 retention) is correct.
-
-## Resolved in this round
-
-These previously failing groups now pass:
+These groups are now regression-tested and pass:
 
 - `write_operand` register fallthrough (3 tests)
 - NEG/NEGB carry inversion (8 tests)
 - SBC/SBCB with C=0 retention (2 tests)
 - SWAB low-byte Z (1 test)
 - ADC/ADCB with C=0 retention (2 tests)
+- ADC/ADCB V and C boundary interpretation (4 tests)
 
 ## Notes on the review corrections
 
-- **ADC/SBC with C=0:** retained destination is correct and now implemented;
-  those tests pass.
+- **ADC/SBC with C=0:** retained destination is correct and implemented.
 - **SWAB N:** bit 7 of the result is correct; `swab_negative_from_low_byte`
   passes.
-- **SBC V/C:** the C=1 cases all pass, so no change is needed there.
-- **ADC flags:** the tests are aligned with the handbook's old-value
-  conditions; the remaining mismatch is in `adc.cpp`, not in the tests.
+- **SBC V/C:** the C=1 cases all pass.
+- **ADC flags:** the old-value interpretation of V and C is implemented and all
+  four boundary tests pass.

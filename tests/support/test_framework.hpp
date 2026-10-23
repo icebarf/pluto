@@ -15,9 +15,9 @@
 #include <initializer_list>
 #include <vector>
 
-#include "../src/instructions/instructions.hpp"
-#include "../src/types.hpp"
-#include "../src/utilities.hpp"
+#include "instructions/instructions.hpp"
+#include "types.hpp"
+#include "utilities.hpp"
 
 namespace test {
 

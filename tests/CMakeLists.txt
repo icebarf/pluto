@@ -5,10 +5,15 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+set(TEST_SUPPORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/support)
 
-# All tests in this directory. main.cpp is the test runner.
-file(GLOB TEST_SOURCES CONFIGURE_DEPENDS
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+# Tests are grouped by category. Glob only the test subdirectories so generated
+# files under tests/build are never picked up.
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/decode/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/addressing/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/operand/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/instructions/*.cpp
 )
 
 # Compile the ISA implementation directly. src/main.cpp is intentionally not
@@ -32,6 +37,7 @@ set(INSTRUCTION_SOURCES
 )
 
 add_executable(pdp11_tests
+  ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
   ${TEST_SOURCES}
   ${INSTRUCTION_SOURCES}
 )
@@ -39,7 +45,7 @@ add_executable(pdp11_tests
 target_include_directories(pdp11_tests PRIVATE
   ${SRC_DIR}
   ${SRC_DIR}/instructions
-  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${TEST_SUPPORT_DIR}
 )
 
 enable_testing()

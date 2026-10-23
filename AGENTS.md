@@ -7,6 +7,7 @@ pdp11 or Pluto is a PDP-11/20 Emulator written in C++.
   - All tests as prompted to generate, run and output
   - A `main.cpp` file that compiles the tests
   - A `CMakeLists.txt` to use with CMake and compiling using this
+  - Always use subdirectories to categorize tests.
 - `llm/` for LLM suggested, associated, produced changes, which can later be merged into
 the project root upon obtain permission.
 
