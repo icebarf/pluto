@@ -312,6 +312,7 @@ Instructions::write_operand(Types::MemoryT& memory,
     } else {
       registers[operand.reg] = value;
     }
+    return;
   }
 
   is_byte ? write_byte(memory, operand.address, static_cast<uint8_t>(value))
