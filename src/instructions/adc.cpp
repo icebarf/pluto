@@ -61,6 +61,8 @@ Instructions::adc(MemoryT& memory,
   oldvalue = read_operand(memory, registers, operand, is_byte);
   if (state.get_carry()) {
     value = oldvalue + 1;
+  } else {
+    value = oldvalue;
   }
   write_operand(memory, registers, operand, value, is_byte);
   set_status(state, value, oldvalue, is_byte);
