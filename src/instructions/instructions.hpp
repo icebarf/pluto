@@ -82,8 +82,8 @@ struct Instruction
 {
   uint16_t opcode;
   bool is_double;
-  Registers
-    destination[2]; // for double operands: [0] -> destination, [1] -> source
+  Registers destination[2]; // for double operands: [0] -> destination, [1] ->
+                            // source | otherwise [0] is main operand for single
   DestinationType dest_type;
   Mode mode[2]; // [0] -> destination, [1] -> source
 };

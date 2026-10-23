@@ -301,7 +301,7 @@ Instructions::set_operand_value(uint16_t value,
 {
   if (mode == Mode::Register) {
     if (is_byte) {
-      registers[reg_index] = (registers[reg_index] & 0xff00) | value;
+      registers[reg_index] = (registers[reg_index] & 0xff00) | (value & 0x00ff);
     } else {
       registers[reg_index] = value;
     }
