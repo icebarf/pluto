@@ -210,9 +210,9 @@ Instructions::extract(const uint16_t word)
 uint16_t
 Instructions::get_operand_address(const Types::MemoryT& memory,
                                   Types::RegistersT& registers,
-                                  Mode mode,
-                                  uint8_t reg,
-                                  bool is_byte)
+                                  const uint8_t reg,
+                                  const Mode mode,
+                                  const bool is_byte)
 {
   uint16_t address = 0;
   switch (mode) {
@@ -271,54 +271,49 @@ Instructions::get_operand_address(const Types::MemoryT& memory,
   return address;
 }
 
-[[nodiscard]] uint16_t
-Instructions::get_operand_value(Types::MemoryT& memory,
-                                Types::RegistersT& registers,
-                                uint8_t reg_index,
-                                Instructions::Mode mode,
-                                bool is_byte)
+[[nodiscard]] Operand
+Instructions::resolve_operand(const Types::MemoryT& memory,
+                              Types::RegistersT& registers,
+                              const uint8_t reg,
+                              const Mode mode,
+                              const bool is_byte)
 {
-  uint16_t value;
   if (mode == Mode::Register) {
-    if (is_byte) {
-      value = registers[reg_index] & 0x00ff;
-    } else {
-      value = registers[reg_index];
-    }
-  } else {
-    uint16_t target_address =
-      get_operand_address(memory, registers, mode, reg_index, is_byte);
-    if (is_byte) {
-      value = read_byte(memory, target_address);
-    } else {
-      value = read_word(memory, target_address);
-    }
+    return Operand(true, reg, 0);
   }
-  return value;
+  return Operand(
+    false, reg, get_operand_address(memory, registers, reg, mode, is_byte));
+}
+
+[[nodiscard]] uint16_t
+Instructions::read_operand(const Types::MemoryT& memory,
+                           const Types::RegistersT& registers,
+                           const Operand& operand,
+                           const bool is_byte)
+{
+  if (operand.is_register) {
+    return is_byte ? registers[operand.reg] & 0x00ff : registers[operand.reg];
+  }
+  return is_byte ? read_byte(memory, operand.address)
+                 : read_word(memory, operand.address);
 }
 
 void
-Instructions::set_operand_value(uint16_t value,
-                                Types::MemoryT& memory,
-                                Types::RegistersT& registers,
-                                uint8_t reg_index,
-                                Instructions::Mode mode,
-                                bool is_byte)
+Instructions::write_operand(Types::MemoryT& memory,
+                            Types::RegistersT& registers,
+                            const Operand& operand,
+                            uint16_t value,
+                            const bool is_byte)
 {
-  if (mode == Mode::Register) {
+  if (operand.is_register) {
     if (is_byte) {
-      registers[reg_index] = (registers[reg_index] & 0xff00) | (value & 0x00ff);
+      registers[operand.reg] = static_cast<uint16_t>(
+        (registers[operand.reg] & 0xff00) | (value & 0x00ff));
     } else {
-      registers[reg_index] = value;
-    }
-
-  } else {
-    uint16_t target_address =
-      get_operand_address(memory, registers, mode, reg_index, is_byte);
-    if (is_byte) {
-      write_byte(memory, target_address, value);
-    } else {
-      write_word(memory, target_address, value);
+      registers[operand.reg] = value;
     }
   }
+
+  is_byte ? write_byte(memory, operand.address, static_cast<uint8_t>(value))
+          : write_word(memory, operand.address, value);
 }

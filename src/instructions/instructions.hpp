@@ -91,30 +91,50 @@ struct Instruction
   Mode mode[2]; // [0] -> destination, [1] -> source
 };
 
+struct Operand
+{
+  bool is_register;
+  uint8_t reg;
+  uint16_t address;
+};
+
+struct DoubleOperand
+{
+  Operand source;
+  Operand desitnation;
+  uint16_t source_value;
+  uint16_t destination_value;
+};
+
 Instruction
 extract(const uint16_t word);
 
 uint16_t
 get_operand_address(const Types::MemoryT& memory,
                     Types::RegistersT& registers,
-                    Mode mode,
-                    uint8_t reg,
-                    bool is_byte);
+                    const uint8_t reg,
+                    const Mode mode,
+                    const bool is_byte);
+
+[[nodiscard]] Operand
+resolve_operand(const Types::MemoryT& memory,
+                Types::RegistersT& registers,
+                const uint8_t reg,
+                const Mode mode,
+                const bool is_byte);
 
 [[nodiscard]] uint16_t
-get_operand_value(Types::MemoryT& memory,
-                  Types::RegistersT& registers,
-                  uint8_t reg_index,
-                  Instructions::Mode mode,
-                  bool is_byte);
+read_operand(const Types::MemoryT& memory,
+             const Types::RegistersT& registers,
+             const Operand& operand,
+             const bool is_byte);
 
 void
-set_operand_value(uint16_t value,
-                  Types::MemoryT& memory,
-                  Types::RegistersT& registers,
-                  uint8_t reg_index,
-                  Instructions::Mode mode,
-                  bool is_byte);
+write_operand(Types::MemoryT& memory,
+              Types::RegistersT& registers,
+              const Operand& operand,
+              uint16_t value,
+              const bool is_byte);
 
 // INSTRUCTIONS
 // Single Byte Operations
