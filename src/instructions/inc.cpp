@@ -31,11 +31,11 @@ set_status(StatusRegister status,
   signed_value < 0 ? status.set_negative() : status.unset_negative();
   value == 0 ? status.set_zero() : status.unset_zero();
   if (is_byte) {
-    (oldvalue & 0xff) >= signed_byte_max_octal
+    (oldvalue & 0xff) == (signed_byte_max_octal - 1)
       ? status.set_overflow()
       : status.unset_overflow(); // signed_byte_max_octal == 128
   } else {
-    oldvalue >= signed_word_max_octal
+    oldvalue == (signed_word_max_octal - 1)
       ? status.set_overflow()
       : status.unset_overflow(); // signed_word_max_octal == 32768
   }
