@@ -49,7 +49,7 @@ Instructions::ror(MemoryT& memory,
   uint16_t target_address = 0;
 
   value = get_operand_value(memory, registers, reg_index, mode, is_byte);
-  if (is_byte) {
+  if (!is_byte) {
     bitmask = 0b1000'0000'0000'0000;
   }
   lsb = value & 0b1;
