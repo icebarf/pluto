@@ -107,7 +107,7 @@ StatusRegister::set_priority(int value)
   uint16_t status =
     this->status_register & 0b0000'0000'0001'1111; // preserve status
   this->status_register = 0xffff & (value << 5);
-  this->status_register = this->status_register & (0xffff & status);
+  this->status_register = this->status_register | (0xffff & status);
 }
 
 bool

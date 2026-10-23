@@ -20,14 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  value & 0b1 ? status.set_carry() : status.unset_carry();
-  int zero = 0;
-  value == 0 ? (zero = 1), status.set_zero() : status.unset_zero();
+  value == 0 ? status.set_zero() : status.unset_zero();
 
   int negative = 0;
+  int carry = static_cast<int>(status.get_carry());
   if (is_byte) {
     // force masking instead of just checking value is below zero because i dont
     // want weird issues where bits spill over into the 16-bit int when
@@ -43,7 +42,7 @@ set_status(StatusRegister status, uint16_t value, bool is_byte)
 
   negative ? status.set_negative() : status.unset_negative();
 
-  bool overflow = zero ^ negative;
+  bool overflow = carry ^ negative;
   overflow ? status.set_overflow() : status.unset_overflow();
 }
 
@@ -59,7 +58,9 @@ Instructions::asr(MemoryT& memory,
 
   uint16_t value = 0;
   uint8_t msb = 0;
+  uint8_t lsb = 0;
   value = get_operand_value(memory, registers, reg_index, mode, is_byte);
+  lsb = value & 0b1;
   if (is_byte) {
     msb = (value >> 7) & 0xff;
   } else {
@@ -76,5 +77,10 @@ Instructions::asr(MemoryT& memory,
   }
   set_operand_value(value, memory, registers, reg_index, mode, is_byte);
 
+  if (lsb) {
+    state.set_carry();
+  } else {
+    state.unset_carry();
+  }
   set_status(state, value, is_byte);
 }
