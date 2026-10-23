@@ -21,25 +21,23 @@ using namespace Instructions;
 using namespace Types;
 
 static void
-set_status(StatusRegister status,
-           uint16_t value,
-           uint16_t oldvalue,
-           bool is_byte)
+set_status(StatusRegister status, uint16_t value, bool oldcarry, bool is_byte)
 {
   status.set_negative_zero(value, is_byte);
-  (oldvalue == 0177777) && status.get_carry()
-    ? status.set_carry()
-    : status.unset_carry(); // set carry if largest unsigned 16-bit value was
-                            // stored before operation
 
   if (is_byte) {
-    ((value & 0xff) == signed_byte_max_octal) && status.get_carry()
+    ((value & 0xff) == signed_byte_max_octal) && oldcarry
       ? status.set_overflow()
       : status.unset_overflow(); // 0o200 == 128
+    ((value & 0xff) == 0) && oldcarry
+      ? status.set_carry()
+      : status.unset_carry(); // set carry if largest unsigned 16-bit value was
+                              // stored before operation
   } else {
-    (value == signed_word_max_octal) && status.get_carry()
+    (value == signed_word_max_octal) && oldcarry
       ? status.set_overflow()
       : status.unset_overflow(); // 0o100000 == 32768
+    (value == 0) && oldcarry ? status.set_carry() : status.unset_carry();
   }
 }
 
@@ -56,14 +54,13 @@ Instructions::adc(MemoryT& memory,
     resolve_operand(memory, registers, reg_index, mode, is_byte);
 
   uint16_t value = 0;
-  uint16_t oldvalue = 0;
+  bool oldcarry = state.get_carry();
 
-  oldvalue = read_operand(memory, registers, operand, is_byte);
-  if (state.get_carry()) {
-    value = oldvalue + 1;
-  } else {
-    value = oldvalue;
+  value = read_operand(memory, registers, operand, is_byte);
+  if (oldcarry) {
+    value++;
   }
+
   write_operand(memory, registers, operand, value, is_byte);
-  set_status(state, value, oldvalue, is_byte);
+  set_status(state, value, oldcarry, is_byte);
 }

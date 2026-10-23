@@ -48,6 +48,9 @@ TEST(adc_word_carry_out)
 
   m.execute(single_op(055, MODE_REGISTER, 0));
 
+  // Handbook p.52:
+  //   C set if (dst) was 177777 and the incoming C was 1.
+  //   V set if (dst) was 077777 and the incoming C was 1 -> V is clear here.
   EXPECT_REG(0, 0);
   EXPECT_FLAGS(0, 1, 0, 1);
 }
@@ -60,6 +63,9 @@ TEST(adc_word_overflow)
 
   m.execute(single_op(055, MODE_REGISTER, 0));
 
+  // Handbook p.52:
+  //   V set if (dst) was 077777 and the incoming C was 1.
+  //   C set if (dst) was 177777 and the incoming C was 1 -> C is clear here.
   EXPECT_REG(0, 0100000);
   EXPECT_FLAGS(1, 0, 1, 0);
 }
@@ -96,6 +102,9 @@ TEST(adc_byte_carry_out)
 
   m.execute(single_op(055, MODE_REGISTER, 0, true));
 
+  // Handbook p.52, byte form:
+  //   C set if (dst) was 0377 and the incoming C was 1.
+  //   V set if (dst) was 0177 and the incoming C was 1 -> V is clear here.
   EXPECT_REG(0, 0);
   EXPECT_FLAGS(0, 1, 0, 1);
 }
@@ -108,6 +117,9 @@ TEST(adc_byte_overflow)
 
   m.execute(single_op(055, MODE_REGISTER, 0, true));
 
+  // Handbook p.52, byte form:
+  //   V set if (dst) was 0177 and the incoming C was 1.
+  //   C set if (dst) was 0377 and the incoming C was 1 -> C is clear here.
   EXPECT_REG(0, 012200);
   EXPECT_FLAGS(1, 0, 1, 0);
 }

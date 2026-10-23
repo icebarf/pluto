@@ -21,23 +21,22 @@ using namespace Instructions;
 using namespace Types;
 
 static void
-set_status(StatusRegister status,
-           uint16_t value,
-           uint16_t oldvalue,
-           bool is_byte)
+set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
   status.set_negative_zero(value, is_byte);
-  (value == 0) && status.get_carry() ? status.unset_carry()
-                                     : status.set_carry();
 
   if (is_byte) {
     ((value & 0xff) == signed_byte_max_octal)
       ? status.set_overflow()
       : status.unset_overflow(); // 0o200 == 128
+    (value & 0xff) == 0 && status.get_carry() ? status.unset_carry()
+                                              : status.set_carry();
   } else {
     value == signed_word_max_octal
       ? status.set_overflow()
       : status.unset_overflow(); // 0o100000 == 32768
+    value == 0 && status.get_carry() ? status.unset_carry()
+                                     : status.set_carry();
   }
 }
 
@@ -53,15 +52,12 @@ Instructions::sbc(MemoryT& memory,
   Operand operand =
     resolve_operand(memory, registers, reg_index, mode, is_byte);
 
-  uint16_t value = 0;
-  uint16_t oldvalue = read_operand(memory, registers, operand, is_byte);
+  uint16_t value = read_operand(memory, registers, operand, is_byte);
   if (state.get_carry()) {
-    value = oldvalue - 1;
-  } else {
-    value = oldvalue;
+    value--;
   }
 
   write_operand(memory, registers, operand, value, is_byte);
 
-  set_status(state, value, oldvalue, is_byte);
+  set_status(state, value, is_byte);
 }
