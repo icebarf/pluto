@@ -21,73 +21,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using namespace Instructions;
 
-// we have word
-// bit 15: 0/1 (1= byte Destination and not the full word)
-// bit 14-12: 1 digit octal
-// bit 11-9: 2 digit
-// bit 8-6: 3 digit
-// bit 5-3: 4 digit
-// bit 2-0: 5 digit
-
-// if bit 14-12 is in range: [1,6] then it is a double operand instruction
-// otherwise single operand
-
-// Refer PDP11/20 Handbook pdf chapter 3.1 and 3.2 for instruction layouts for
-// single operand addressing and double operand addressing
-
-inline Instruction
-extract_single_operand_instruction(uint16_t word)
-{
-  return Instruction{ .opcode = static_cast<uint16_t>((word >> 6)),
-                      .destination = { static_cast<Registers>(word & 0x07) },
-                      .mode = { static_cast<Mode>((word >> 3) & 0x7) } };
-};
-
-inline Instruction
-extract_double_operand_instruction(uint16_t word)
-{
-  return Instruction{ .opcode = static_cast<uint16_t>((word >> 12) & 0x7),
-                      .destination = { static_cast<Registers>(word & 0x07),
-                                       static_cast<Registers>((word >> 6) &
-                                                              0x7) },
-                      .mode = { static_cast<Mode>((word >> 3) & 0x7),
-                                static_cast<Mode>((word >> 9) & 0x7) } };
-};
-
-Instruction
-Instructions::extract(const uint16_t word)
-{
-  Instruction instruction{};
-  const uint16_t group = word & 0x7000;
-
-  if (group == 0) { // single operand
-    instruction.is_double = false;
-    instruction.opcode = (word >> 6) & 0x01ff;
-    instruction.destination[0] = static_cast<Registers>(word & 0x07);
-    instruction.mode[0] = static_cast<Mode>((word >> 3) & 0x07);
-    instruction.dest_type =
-      (word & 0x8000) ? DestinationType::Byte : DestinationType::Word;
-
-  } else if (group <= 060000) { // double operand, 01..06 / 16
-    instruction.is_double = true;
-    instruction.opcode = word >> 12; // 001..006, 011..015, 016
-    instruction.destination[0] = static_cast<Registers>(word & 0x07);
-    instruction.mode[0] = static_cast<Mode>((word >> 3) & 0x07);
-    instruction.destination[1] = static_cast<Registers>((word >> 6) & 0x07);
-    instruction.mode[1] = static_cast<Mode>((word >> 9) & 0x07);
-
-    bool byte_op = instruction.opcode >= 011 && instruction.opcode <= 015;
-    instruction.dest_type =
-      byte_op ? DestinationType::Byte : DestinationType::Word;
-
-  } else { // 07/17: EIS, illegal on 11/20
-    instruction.is_double = false;
-    instruction.opcode = word >> 12;
-    instruction.dest_type = DestinationType::Word;
-  }
-  return instruction;
-}
-
 /* Status Register Bit positions for each status flag */
 constexpr uint8_t carry_bit_pos = 0;
 constexpr uint8_t overflow_bit_pos = 1;
@@ -211,6 +144,73 @@ int
 StatusRegister::get_priority() const
 {
   return (this->status_register >> priority_bits_pos) & 0b111;
+}
+
+// we have word
+// bit 15: 0/1 (1= byte Destination and not the full word)
+// bit 14-12: 1 digit octal
+// bit 11-9: 2 digit
+// bit 8-6: 3 digit
+// bit 5-3: 4 digit
+// bit 2-0: 5 digit
+
+// if bit 14-12 is in range: [1,6] then it is a double operand instruction
+// otherwise single operand
+
+// Refer PDP11/20 Handbook pdf chapter 3.1 and 3.2 for instruction layouts for
+// single operand addressing and double operand addressing
+
+inline Instruction
+extract_single_operand_instruction(uint16_t word)
+{
+  return Instruction{ .opcode = static_cast<uint16_t>((word >> 6)),
+                      .destination = { static_cast<Registers>(word & 0x07) },
+                      .mode = { static_cast<Mode>((word >> 3) & 0x7) } };
+};
+
+inline Instruction
+extract_double_operand_instruction(uint16_t word)
+{
+  return Instruction{ .opcode = static_cast<uint16_t>((word >> 12) & 0x7),
+                      .destination = { static_cast<Registers>(word & 0x07),
+                                       static_cast<Registers>((word >> 6) &
+                                                              0x7) },
+                      .mode = { static_cast<Mode>((word >> 3) & 0x7),
+                                static_cast<Mode>((word >> 9) & 0x7) } };
+};
+
+Instruction
+Instructions::extract(const uint16_t word)
+{
+  Instruction instruction{};
+  const uint16_t group = word & 0x7000;
+
+  if (group == 0) { // single operand
+    instruction.is_double = false;
+    instruction.opcode = (word >> 6) & 0x01ff;
+    instruction.destination[0] = static_cast<Registers>(word & 0x07);
+    instruction.mode[0] = static_cast<Mode>((word >> 3) & 0x07);
+    instruction.dest_type =
+      (word & 0x8000) ? DestinationType::Byte : DestinationType::Word;
+
+  } else if (group <= 060000) { // double operand, 01..06 / 16
+    instruction.is_double = true;
+    instruction.opcode = word >> 12; // 001..006, 011..015, 016
+    instruction.destination[0] = static_cast<Registers>(word & 0x07);
+    instruction.mode[0] = static_cast<Mode>((word >> 3) & 0x07);
+    instruction.destination[1] = static_cast<Registers>((word >> 6) & 0x07);
+    instruction.mode[1] = static_cast<Mode>((word >> 9) & 0x07);
+
+    bool byte_op = instruction.opcode >= 011 && instruction.opcode <= 015;
+    instruction.dest_type =
+      byte_op ? DestinationType::Byte : DestinationType::Word;
+
+  } else { // 07/17: EIS, illegal on 11/20
+    instruction.is_double = false;
+    instruction.opcode = word >> 12;
+    instruction.dest_type = DestinationType::Word;
+  }
+  return instruction;
 }
 
 uint16_t
