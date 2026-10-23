@@ -20,16 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status,
            uint16_t value,
            uint16_t oldvalue,
            bool is_byte)
 {
-  int16_t signed_value = value;
-  signed_value < 1 ? status.set_negative() : status.unset_negative();
-  value == 0 ? status.set_zero() : status.unset_zero();
-
+  status.set_negative_zero(value, is_byte);
   (oldvalue == 0177777) && status.get_carry()
     ? status.set_carry()
     : status.unset_carry(); // set carry if largest unsigned 16-bit value was
@@ -40,7 +37,7 @@ set_status(StatusRegister status,
       ? status.set_overflow()
       : status.unset_overflow(); // 0o200 == 128
   } else {
-    (value >= signed_word_max_octal) && status.get_carry()
+    (value == signed_word_max_octal) && status.get_carry()
       ? status.set_overflow()
       : status.unset_overflow(); // 0o100000 == 32768
   }

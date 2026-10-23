@@ -20,29 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  int zero = 0;
-  value == 0 ? (zero = 1), status.set_zero() : status.unset_zero();
-
-  int negative = 0;
-  if (is_byte) {
-    // force masking instead of just checking value is below zero because i dont
-    // want weird issues where bits spill over into the 16-bit int when
-    // operating on bytes, this just feels safe.
-    if ((value & 0xff) & 0b1000'0000) {
-      negative = 1;
-    }
-  } else {
-    if (value & 0b1000'0000'0000'0000) {
-      negative = 1;
-    }
-  }
-
-  negative ? status.set_negative() : status.unset_negative();
-
-  bool overflow = zero ^ negative;
+  status.set_negative_zero(value, is_byte);
+  bool carry = status.get_carry();
+  bool negative = status.get_negative();
+  bool overflow = carry ^ negative;
   overflow ? status.set_overflow() : status.unset_overflow();
 }
 

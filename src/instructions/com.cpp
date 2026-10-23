@@ -20,26 +20,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
   status.unset_overflow();
   status.set_carry();
-  value == 0 ? status.set_zero() : status.unset_zero();
-
-  if (is_byte) {
-    if ((value & 0xff) & 0b1000'0000) {
-      status.set_negative();
-    } else {
-      status.unset_negative();
-    }
-  } else {
-    if (value & 0b1000'0000'0000'0000) {
-      status.set_negative();
-    } else {
-      status.unset_negative();
-    }
-  }
+  status.set_negative_zero(value, is_byte);
 }
 
 void

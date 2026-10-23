@@ -23,9 +23,7 @@ using namespace Types;
 void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  int16_t signed_value = value;
-  signed_value < 0 ? status.set_negative() : status.unset_negative();
-  value == 0 ? status.set_zero() : status.unset_zero();
+  status.set_negative_zero(value, is_byte);
   status.unset_overflow();
   status.unset_carry();
 }

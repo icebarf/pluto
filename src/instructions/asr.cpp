@@ -23,25 +23,9 @@ using namespace Types;
 static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  value == 0 ? status.set_zero() : status.unset_zero();
-
-  int negative = 0;
-  int carry = static_cast<int>(status.get_carry());
-  if (is_byte) {
-    // force masking instead of just checking value is below zero because i dont
-    // want weird issues where bits spill over into the 16-bit int when
-    // operating on bytes, this just feels safe.
-    if ((value & 0xff) & 0b1000'0000) {
-      negative = 1;
-    }
-  } else {
-    if (value & 0b1000'0000'0000'0000) {
-      negative = 1;
-    }
-  }
-
-  negative ? status.set_negative() : status.unset_negative();
-
+  status.set_negative_zero(value, is_byte);
+  bool negative = status.get_negative();
+  bool carry = status.get_carry();
   bool overflow = carry ^ negative;
   overflow ? status.set_overflow() : status.unset_overflow();
 }

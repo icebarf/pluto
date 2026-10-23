@@ -51,6 +51,9 @@ public:
   bool get_negative() const;
   bool get_trap() const;
   int get_priority() const;
+
+  // set flags based on value
+  void set_negative_zero(uint16_t value, bool is_byte);
 };
 
 enum Mode

@@ -20,21 +20,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
-  int16_t signed_value = value;
-  signed_value < 0 ? status.set_negative() : status.unset_negative();
-
-  value == 0 ? status.set_zero(), status.unset_carry() : status.unset_zero(),
+  status.set_negative_zero(value, is_byte);
+  if (status.get_zero()) {
     status.set_carry();
+  }
 
   if (is_byte) {
-    (value & 0xff) >= signed_byte_max_octal
+    (value & 0xff) == signed_byte_max_octal
       ? status.set_overflow()
       : status.unset_overflow(); // signed_byte_max_octal == 128
   } else {
-    value >= signed_word_max_octal
+    value == signed_word_max_octal
       ? status.set_overflow()
       : status.unset_overflow(); // signed_word_max_octal == 32768
   }

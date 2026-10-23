@@ -146,6 +146,20 @@ StatusRegister::get_priority() const
   return (this->status_register >> priority_bits_pos) & 0b111;
 }
 
+void
+StatusRegister::set_negative_zero(uint16_t value, bool is_byte)
+{
+  uint8_t byte_value = value & 0xff;
+  if (is_byte) {
+    byte_value == 0 ? this->set_zero() : this->unset_zero();
+    (byte_value >> 7) & 0b1 ? this->set_negative() : this->unset_negative();
+    return;
+  }
+
+  value == 0 ? this->set_zero() : this->unset_zero();
+  (value >> 15) & 0b1 ? this->set_negative() : this->unset_negative();
+}
+
 // we have word
 // bit 15: 0/1 (1= byte Destination and not the full word)
 // bit 14-12: 1 digit octal
@@ -160,7 +174,7 @@ StatusRegister::get_priority() const
 // Refer PDP11/20 Handbook pdf chapter 3.1 and 3.2 for instruction layouts for
 // single operand addressing and double operand addressing
 
-inline Instruction
+static inline Instruction
 extract_single_operand_instruction(uint16_t word)
 {
   return Instruction{ .opcode = static_cast<uint16_t>((word >> 6)),
@@ -168,7 +182,7 @@ extract_single_operand_instruction(uint16_t word)
                       .mode = { static_cast<Mode>((word >> 3) & 0x7) } };
 };
 
-inline Instruction
+static inline Instruction
 extract_double_operand_instruction(uint16_t word)
 {
   return Instruction{ .opcode = static_cast<uint16_t>((word >> 12) & 0x7),

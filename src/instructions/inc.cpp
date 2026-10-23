@@ -20,16 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status,
            uint16_t value,
            uint16_t oldvalue,
            bool is_byte)
 {
-  int16_t signed_value = value;
-
-  signed_value < 0 ? status.set_negative() : status.unset_negative();
-  value == 0 ? status.set_zero() : status.unset_zero();
+  status.set_negative_zero(value, is_byte);
   if (is_byte) {
     (oldvalue & 0xff) == (signed_byte_max_octal - 1)
       ? status.set_overflow()
