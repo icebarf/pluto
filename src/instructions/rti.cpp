@@ -27,7 +27,7 @@ Instructions::rti(Types::MemoryT& memory,
                   Instruction instruction)
 {
   registers[program_counter] = read_word(memory, registers[stack_pointer]);
-  registers[stack_pointer] -= 2;
+  registers[stack_pointer] += 2;
   registers[status] = read_word(memory, registers[stack_pointer]);
-  registers[stack_pointer] -= 2;
+  registers[stack_pointer] += 2;
 }
