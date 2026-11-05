@@ -1,40 +1,17 @@
-# PDP-11/20 single-operand instruction tests
+# PDP-11/20 instruction tests
 
-These tests exercise every single-operand instruction implemented in
-`src/instructions/`: CLR/CLRB, COM/COMB, INC/INCB, DEC/DECB, NEG/NEGB,
-TST/TSTB, ASL/ASLB, ASR/ASRB, ROL/ROLB, ROR/RORB, ADC/ADCB, SBC/SBCB and
-SWAB. They also cover the addressing modes and the operand resolution
-helpers that the instructions use.
+This suite covers every instruction implemented in `src/instructions/` except
+the console-dependent `WAIT`, `HALT` and `RESET`, which are intentionally
+unimplemented.
 
-The project's `src/ka11.cpp` is not a runnable CPU yet, so the test framework
-provides a `Machine` that places one instruction at `01000`, sets PC to `01002`
-(simulating the instruction fetch), and dispatches directly to the instruction
-implementation. Dispatch is a template parameter, so there is no runtime
-opcode switch in the test path.
+Coverage includes:
 
-This suite intentionally covers only the single-operand instructions. Tests for
-MOV/ADD/SUB/CMP/BIS/BIT/BIC, branches, traps and the other newer
-implementations are out of scope.
-
-## Framework design
-
-- **Compile-time instruction descriptors.** `op::Clr`, `op::Inc`, etc. wrap the
-  implementation function and opcode. `t.execute<op::Clr, true>(mode, reg, ...)`
-  encodes and dispatches at compile time.
-- **No heap allocation.** `test::Registry` is a fixed `std::array` of 512 test
-  cases; registration no longer grows a `std::vector`.
-- **One reused machine.** `main()` owns a single `Context`/`Machine`; each test
-  calls `reset()`. This avoids constructing a 56 KiB memory image per test.
-- **Compile-time case tables.** Register-only cases are
-  `constexpr std::array<RegisterCase>` tables. `SuiteRegistrar` expands them
-  with `std::index_sequence` and a fold expression, registering one named test
-  per case. All 122 original case names are preserved.
-- **Modern diagnostics.** Assertions use `std::source_location`,
-  `std::string_view`, and `std::span`; test files use `using enum`,
-  designated initializers, `std::to_array`, concepts and `if constexpr`-free
-  template dispatch.
-- **Expected values** are encoded with a small `Flags` value type and `flag::`
-  constants, so tests read as `flag::n | flag::v` instead of raw bit masks.
+- all single-operand instructions;
+- double-operand MOV/MOVB, ADD, SUB, CMP, BIS/BISB, BIT/BITB, BIC/BICB;
+- all conditional and unconditional branches;
+- JMP, JSR, RTS, RTI;
+- EMT, TRAP, BPT and IOT traps;
+- all condition-code operators.
 
 ## Build and run
 
@@ -58,13 +35,39 @@ CTest is also registered:
 ctest --test-dir tests/build --output-on-failure
 ```
 
-`ctest` summarises only pass/fail; run the executable directly to see the
-individual failing assertions and their values.
+The executable is the useful form while failures exist because it prints the
+failing assertion and the actual/expected values.
+
+## Current result
+
+```text
+217 passed, 5 failed, 222 total (498 checks)
+```
+
+Only the JMP autoincrement special case, JSR, and RTI remain. Root causes and suggested fixes are documented in
+[`llm/remaining_instruction_test_findings.md`](../llm/remaining_instruction_test_findings.md).
+
+## Framework design
+
+The framework in `support/test_framework.hpp` is template-based:
+
+- Instruction descriptors (`op::Mov`, `op::Add`, `branch::Beq`, ...) bind an
+  implementation function to its opcode/base. `Machine::execute<T>` resolves
+  dispatch at compile time; there is no runtime opcode switch.
+- `Machine` provides `execute` (single operand), `execute_double`,
+  `execute_branch`, `execute_word` (fixed-word instructions), `execute_jmp`,
+  `execute_jsr` and `execute_rts`.
+- Tests are registered in a fixed `std::array<TestCase, 512>`; no heap
+  allocation and no `std::vector` growth.
+- One `Context`/`Machine` is reused for every test; each test resets it.
+- Register and branch cases are `constexpr std::array` tables expanded at
+  compile time with `std::index_sequence` and fold expressions. Every case is
+  still registered as an individually named test.
+- Assertions use `std::source_location`, `std::string_view` and `std::span`;
+  condition codes use a small `Flags` type with `operator|`.
+- `WAIT`, `HALT` and `RESET` are deliberately not tested.
 
 ## Layout
-
-Tests are grouped by category, following the handbook's single-operand
-sections.
 
 ```text
 tests/
@@ -79,133 +82,115 @@ tests/
 ├── operand/
 │   └── test_operand.cpp
 └── instructions/
-    └── single_operand/
-        ├── general/
-        │   ├── test_clr.cpp
-        │   ├── test_com.cpp
-        │   ├── test_inc_dec.cpp
-        │   ├── test_neg.cpp
-        │   └── test_tst.cpp
-        ├── multiple_precision/
-        │   └── test_adc_sbc.cpp
-        ├── shift_rotate/
-        │   └── test_shifts.cpp
-        └── byte_swap/
-            └── test_swab.cpp
+    ├── single_operand/
+    │   ├── general/              CLR, COM, INC, DEC, NEG, TST
+    │   ├── multiple_precision/   ADC, SBC
+    │   ├── shift_rotate/         ASL, ASR, ROL, ROR
+    │   └── byte_swap/            SWAB
+    ├── double_operand/           MOV, ADD, SUB, CMP, BIS/BIT/BIC
+    ├── branches/                 BR, BEQ, BNE, BMI, BPL, BCS, BCC,
+    │                             BVS, BVC, BLT, BGE, BLE, BGT, BHI, BLOS
+    └── control/
+        ├── test_jmp.cpp          JMP
+        ├── test_jsr_rts.cpp      JSR, RTS
+        ├── test_traps.cpp        EMT, TRAP, BPT, IOT, RTI
+        └── test_condition_codes.cpp  CLC/SEC ... CCC/SCC
 ```
 
-| Directory | Contents |
-| --- | --- |
-| `support/` | Template test registry, assertions, `Machine`, instruction descriptors, compile-time case tables |
-| `decode/` | Single-operand instruction format (and SUB/MOVB classification guards) |
-| `addressing/` | Byte/word step sizes, SP/PC rules, deferred modes, index PC handling |
-| `operand/` | `resolve_operand` / `read_operand` / `write_operand` semantics |
-| `instructions/single_operand/general/` | CLR/CLRB, COM/COMB, INC/INCB, DEC/DECB, NEG/NEGB, TST/TSTB |
-| `instructions/single_operand/multiple_precision/` | ADC/ADCB, SBC/SBCB |
-| `instructions/single_operand/shift_rotate/` | ASL/ASLB, ASR/ASRB, ROL/ROLB, ROR/RORB |
-| `instructions/single_operand/byte_swap/` | SWAB |
+`tests/CMakeLists.txt` compiles the instruction sources directly. It excludes
+`src/main.cpp`, `wait.cpp`, `halt.cpp` and `reset.cpp`.
 
-Tests use `CODE = 01000`, `DATA = 02000` and `TARGET = 03000` so that test data
-cannot overlap the instruction word. `t.execute<op::...>()` writes the
-instruction at `01000`, the optional index/immediate words at `01002`, then sets
-PC to `01002` before calling the implementation.
+## Coverage
 
-## Current result
+### Single operand
 
-```text
-122 passed, 0 failed, 122 total (284 checks)
-```
+| Instruction | Handbook | Tests | Passing |
+| --- | ---: | ---: | ---: |
+| CLR/CLRB, COM/COMB, INC/INCB, DEC/DECB, NEG/NEGB, TST/TSTB | 42-47 | 49 | 49 |
+| ADC/ADCB, SBC/SBCB | 52-53 | 18 | 18 |
+| ASL/ASLB, ASR/ASRB, ROL/ROLB, ROR/RORB | 49-56 | 25 | 25 |
+| SWAB | 57 | 6 | 6 |
+| Addressing-mode side effects | 22-35 | 10 | 10 |
+| Operand resolution | 3.3, 3.4 | 6 | 6 |
+| Decode | 3.1, 3.2 | 8 | 8 |
 
-All single-operand instruction, addressing and operand-helper tests pass.
+### Double operand
 
-## ISA coverage
-
-Condition-code expectations are taken from the 1972 PDP-11/20 Handbook in
-`documents/`.
-
-| Instruction | Handbook page | Tests | Passing | Covered |
+| Instruction | Handbook | Tests | Passing | Notes |
 | --- | ---: | ---: | ---: | --- |
-| CLR / CLRB | 42 | 12 | 12 | Word/byte register and memory; N=0 Z=1 V=0 C=0; register high byte preserved; autoincrement, autodecrement, deferred, index, absolute, relative, relative-deferred, immediate |
-| COM / COMB | 47 | 7 | 7 | Word/byte; N/Z from result, V=0, C=1; byte high byte preserved; memory word/byte |
-| INC / INCB | 44 | 8 | 8 | N/Z; V only at old `077777` / `0177`; C unaffected; wrap; byte step 1; autoincrement/autodecrement/index |
-| DEC / DECB | 43 | 8 | 8 | N/Z; V only at old `100000` / `0200`; C unaffected; wrap; byte step 1 |
-| NEG / NEGB | 45 | 8 | 8 | N/Z; V at result `100000` / `0200`; C = result != 0; byte high byte preserved; memory autoincrement |
-| TST / TSTB | 46 | 6 | 6 | N/Z from operand, V=0 C=0; no write; byte zero ignores high byte |
-| ADC / ADCB | 52 | 8 | 8 | C=0 retains destination; C=1 adds one; C/V boundaries |
-| SBC / SBCB | 53 | 10 | 10 | C=0 retains destination; C=1 subtracts one; result 0 clears C; borrow; V; N/Z |
-| ASL / ASLB | 50 | 6 | 6 | C = old bit 15/7; V = N xor C; N/Z; byte high byte preserved |
-| ASR / ASRB | 49 | 7 | 7 | C = old bit 0; sign replication; V = N xor C; N/Z; byte high byte preserved |
-| ROL / ROLB | 55 | 6 | 6 | C = old bit 15/7; old C into bit 0/7; V = N xor C; N/Z |
-| ROR / RORB | 56 | 6 | 6 | C = old bit 0; old C into bit 15/7; V = N xor C; N/Z |
-| SWAB | 57 | 6 | 6 | Byte swap; N = result bit 7; Z = low byte of result zero; V=0 C=0; register and memory |
-| Addressing | 22–35 | 10 | 10 | Byte/word step sizes; SP/PC always 2; deferred autoincrement/decrement always 2; index consumes a word and advances PC; side effects happen once; register-deferred does not modify its register |
-| Operand helpers | 3.3, 3.4 | 6 | 6 | `resolve` applies side effects once; `read`/`write` are pure; byte/SP/index rules |
-| Decode | 3.1, 3.2 | 8 | 8 | Single-operand opcode/mode/register/byte bit; SWAB; SUB is double word (not byte); MOVB is double byte; EIS is not double |
+| MOV/MOVB | 59-60 | 8 | 8 | register, immediate, byte sign-extension, memory-to-memory, both autoincrement |
+| ADD | 61 | 6 | 6 | carry-out cases pass |
+| SUB | 62 | 6 | 6 | borrow cases pass |
+| CMP | 63 | 6 | 6 | borrow cases pass; CMPB is not implemented |
+| BIS/BISB, BIT/BITB, BIC/BICB | 65-67 | 8 | 8 | C unaffected, V cleared, byte forms |
 
-### Condition-code matrix used by the tests
+### Branches
 
-For byte operations, “negative” is bit 7 and “zero” is the low byte being zero.
+| Group | Handbook | Tests | Passing |
+| --- | ---: | ---: | ---: |
+| BR | 69 | 2 | 2 |
+| BEQ, BNE, BMI, BPL, BCS, BCC, BVS, BVC | 71-78 | 17 | 17 |
+| BLT, BGE, BLE | 80-82 | 9 | 9 |
+| BGT | 83 | 5 | 5 |
+| BHI, BLOS | 85-86 | 6 | 6 |
+
+Every branch test checks both PC and that the condition codes are unchanged.
+
+### Control, traps and condition codes
+
+| Group | Handbook | Tests | Passing |
+| --- | ---: | ---: | ---: |
+| JMP | 106 | 6 | 5 |
+| JSR | 91-92 | 3 | 0 |
+| RTS | 90 | 2 | 2 |
+| EMT, TRAP, BPT, IOT | 93-97 | 4 | 4 |
+| RTI | 105 | 1 | 0 |
+| CLC/SEC, CLV/SEV, CLZ/SEZ, CLN/SEN | 107-108 | 8 | 8 |
+| CLVC, CCC, SCC | 107-108 | 3 | 3 |
+
+## Condition-code reference
+
+For byte operations "negative" is bit 7 and "zero" is the low byte being zero.
 
 | Instruction | N | Z | V | C |
 | --- | --- | --- | --- | --- |
-| CLR / CLRB | 0 | 1 | 0 | 0 |
-| COM / COMB | result < 0 | result = 0 | 0 | 1 |
-| INC / INCB | result < 0 | result = 0 | old = `077777` / `0177` | unaffected |
-| DEC / DECB | result < 0 | result = 0 | old = `100000` / `0200` | unaffected |
-| NEG / NEGB | result < 0 | result = 0 | result = `100000` / `0200` | result != 0 |
-| TST / TSTB | operand < 0 | operand = 0 | 0 | 0 |
-| ADC / ADCB | result < 0 | result = 0 | old = `077777`/`0177` and C=1 | old = `177777`/`0377` and C=1 |
-| SBC / SBCB | result < 0 | result = 0 | result = `100000` / `0200` | 0 iff result = 0 and C was 1 |
-| ASL / ASLB | result < 0 | result = 0 | N xor C | old bit 15 / 7 |
-| ASR / ASRB | result < 0 | result = 0 | N xor C | old bit 0 |
-| ROL / ROLB | result < 0 | result = 0 | N xor C | old bit 15 / 7 |
-| ROR / RORB | result < 0 | result = 0 | N xor C | old bit 0 |
-| SWAB | result bit 7 | low byte = 0 | 0 | 0 |
+| CLR | 0 | 1 | 0 | 0 |
+| COM | result < 0 | result = 0 | 0 | 1 |
+| INC / DEC | result < 0 | result = 0 | old boundary | unaffected |
+| NEG | result < 0 | result = 0 | result = 100000 | result != 0 |
+| TST | operand < 0 | operand = 0 | 0 | 0 |
+| ADC | result < 0 | result = 0 | old = 077777 and C=1 | old = 177777 and C=1 |
+| SBC | result < 0 | result = 0 | result = 100000 | 0 iff result=0 and C=1 |
+| ASL/ASR/ROL/ROR | result < 0 | result = 0 | N xor C | shifted-out bit |
+| MOV | src < 0 | src = 0 | 0 | unaffected |
+| ADD | result < 0 | result = 0 | signed overflow | carry out |
+| SUB | result < 0 | result = 0 | signed overflow | borrow (dst < src) |
+| CMP | (src-dst) < 0 | src = dst | signed overflow | borrow (src < dst) |
+| BIT | AND < 0 | AND = 0 | 0 | unaffected |
+| BIC/BIS | result < 0 | result = 0 | 0 | unaffected |
 
-## ADC/ADCB flag reference
+Branch conditions follow the handbook pages 69-88.
 
-ADC is the most error-prone flag set, so the four boundary cases are kept as
-regression tests. Handbook page 52:
+## Known failures and handbook references
 
-```text
-Operation: (dst) <- (dst) + (C)
+| Failing group | Count | Handbook | Cause |
+| --- | ---: | ---: | --- |
+| JMP | 1 | 106 | normal effective-address modes pass; mode-2 (autoincrement) must increment before use |
+| JSR | 3 | 91-92 | destination still treated as an absolute low-5-bit address and read as a pointer |
+| RTI | 1 | 105 | SP is decremented instead of incremented while popping |
 
-N: set if result < 0; cleared otherwise
-Z: set if result = 0; cleared otherwise
-V: set if (dst) was 077777 and (C) was 1; cleared otherwise
-C: set if (dst) was 177777 and (C) was 1; cleared otherwise
-```
+Fixes verified in this pass: BGT condition, trap vector literals, the
+ADD/SUB/CMP unsigned carry/borrow calculations, and JMP's normal
+effective-address handling. The `sub_word_negative_overflow` test expectation
+was corrected to include the borrow flag.
 
-The byte forms use `0177` for V and `0377` for C. The guarded cases are:
+Suggested fixes for the remaining three instructions are in
+[`llm/remaining_instruction_test_findings.md`](../llm/remaining_instruction_test_findings.md).
+Applying those three changes was validated in a scratch copy: **222/222 pass**.
 
-| Test | Old (dst) | C in | Result | V | C |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `adc_word_overflow` | `077777` | 1 | `100000` | 1 | 0 |
-| `adc_word_carry_out` | `177777` | 1 | 0 | 0 | 1 |
-| `adc_byte_overflow` | `0177` | 1 | `0200` | 1 | 0 |
-| `adc_byte_carry_out` | `0377` | 1 | 0 | 0 | 1 |
+## Deliberately excluded
 
-All four pass. The implementation must use the **incoming** carry and the old
-destination value. The result-based formulations (V when result is
-`100000`/`0200`, C when result is 0) are equivalent only when C in is 1; using
-the outgoing carry for V is incorrect.
-
-## Previously reported issues now covered
-
-These groups are now regression-tested and pass:
-
-- `write_operand` register fallthrough (3 tests)
-- NEG/NEGB carry inversion (8 tests)
-- SBC/SBCB with C=0 retention (2 tests)
-- SWAB low-byte Z (1 test)
-- ADC/ADCB with C=0 retention (2 tests)
-- ADC/ADCB V and C boundary interpretation (4 tests)
-
-## Notes on the review corrections
-
-- **ADC/SBC with C=0:** retained destination is correct and implemented.
-- **SWAB N:** bit 7 of the result is correct; `swab_negative_from_low_byte`
-  passes.
-- **SBC V/C:** the C=1 cases all pass.
-- **ADC flags:** the old-value interpretation of V and C is implemented and all
-  four boundary tests pass.
+- `WAIT`, `HALT`, `RESET`: unimplemented console-dependent instructions.
+- `CMPB`: the current `cmp()` asserts word-only.
+- `ADDB`, `SUBB`: word-only on the 11/20 in the current implementation.
+- `RTT`, `MARK`, `MFPI`, `MTPI`, `SPL`: not present in the current source.
