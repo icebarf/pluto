@@ -7,94 +7,96 @@
  */
 #include "test_framework.hpp"
 
+using namespace test;
+using enum Instructions::Mode;
+
 TEST(register_word_write_does_not_touch_memory)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012345;
-  write_word(m.memory, 0, 012345); // sentinel at the instruction/trap area
+  t.reset();
+  t.reg(0) = 012345;
+  t.set_word(0, 012345); // sentinel at the instruction/trap area
 
-  m.execute(single_op(050, MODE_REGISTER, 0));
+  t.execute<op::Clr>(Register, 0);
 
-  EXPECT_REG(0, 0);
-  EXPECT_WORD(0, 012345);
+  t.expect_reg(0, 0);
+  t.expect_word(0, 012345);
 }
 
 TEST(register_byte_write_does_not_touch_memory)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012345;
-  m.memory[0] = 0xaa;
-  m.memory[1] = 0xbb;
+  t.reset();
+  t.reg(0) = 012345;
+  t.set_byte(0, 0xaa);
+  t.set_byte(1, 0xbb);
 
-  m.execute(single_op(050, MODE_REGISTER, 0, true));
+  t.execute<op::Clr, true>(Register, 0);
 
-  EXPECT_REG(0, 012000); // 012345 = 0x14E5; high byte 0x14 survives
-  EXPECT_BYTE(0, 0xaa);
-  EXPECT_BYTE(1, 0xbb);
+  t.expect_reg(0, 012000); // 012345 = 0x14E5; high byte 0x14 survives
+  t.expect_byte(0, 0xaa);
+  t.expect_byte(1, 0xbb);
 }
 
 TEST(resolve_autoincrement_applies_side_effect_once)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = TestMachine::DATA;
-  write_word(m.memory, TestMachine::DATA, 5);
+  t.reset();
+  t.reg(0) = DATA;
+  t.set_word(DATA, 5);
 
-  const Instructions::Operand operand = Instructions::resolve_operand(
-    m.memory, m.registers, 0, Instructions::Mode::AutoIncrement, false);
+  const auto operand = Instructions::resolve_operand(
+    t.machine.memory, t.machine.registers, 0, AutoIncrement, false);
 
-  EXPECT_REG(0, TestMachine::DATA + 2);
-  EXPECT_EQ(operand.is_register, false);
-  EXPECT_EQ(operand.address, TestMachine::DATA);
+  t.expect_reg(0, DATA + 2);
+  t.expect_true(!operand.is_register, "operand is memory");
+  t.expect_eq(operand.address, DATA, "address");
 
-  EXPECT_EQ(
-    Instructions::read_operand(m.memory, m.registers, operand, false), 5);
-  EXPECT_REG(0, TestMachine::DATA + 2);
+  t.expect_eq(Instructions::read_operand(t.machine.memory,
+                                         t.machine.registers,
+                                         operand,
+                                         false),
+              5,
+              "read value");
+  t.expect_reg(0, DATA + 2);
 
-  Instructions::write_operand(m.memory, m.registers, operand, 7, false);
-  EXPECT_WORD(TestMachine::DATA, 7);
-  EXPECT_REG(0, TestMachine::DATA + 2);
+  Instructions::write_operand(
+    t.machine.memory, t.machine.registers, operand, 7, false);
+  t.expect_word(DATA, 7);
+  t.expect_reg(0, DATA + 2);
 }
 
 TEST(resolve_byte_autoincrement_steps_one)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = TestMachine::DATA;
+  t.reset();
+  t.reg(0) = DATA;
 
-  const Instructions::Operand operand = Instructions::resolve_operand(
-    m.memory, m.registers, 0, Instructions::Mode::AutoIncrement, true);
+  const auto operand = Instructions::resolve_operand(
+    t.machine.memory, t.machine.registers, 0, AutoIncrement, true);
 
-  EXPECT_REG(0, TestMachine::DATA + 1);
-  EXPECT_EQ(operand.address, TestMachine::DATA);
+  t.expect_reg(0, DATA + 1);
+  t.expect_eq(operand.address, DATA, "address");
 }
 
 TEST(resolve_sp_byte_autoincrement_steps_two)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[6] = TestMachine::DATA;
+  t.reset();
+  t.reg(6) = DATA;
 
-  const Instructions::Operand operand = Instructions::resolve_operand(
-    m.memory, m.registers, 6, Instructions::Mode::AutoIncrement, true);
+  const auto operand = Instructions::resolve_operand(
+    t.machine.memory, t.machine.registers, 6, AutoIncrement, true);
 
-  EXPECT_REG(6, TestMachine::DATA + 2);
-  EXPECT_EQ(operand.address, TestMachine::DATA);
+  t.expect_reg(6, DATA + 2);
+  t.expect_eq(operand.address, DATA, "address");
 }
 
 TEST(resolve_index_uses_pc_after_offset)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[Types::program_counter] = TestMachine::CODE + 2;
-  write_word(m.memory, TestMachine::CODE + 2, 4);
+  t.reset();
+  t.reg(Types::program_counter) = CODE + 2;
+  t.set_word(CODE + 2, 4);
 
-  const Instructions::Operand operand = Instructions::resolve_operand(
-    m.memory, m.registers, 7, Instructions::Mode::Index, false);
+  const auto operand = Instructions::resolve_operand(
+    t.machine.memory, t.machine.registers, 7, Index, false);
 
   // PC advances past the index word, and the address uses the new PC value.
-  EXPECT_REG(7, TestMachine::CODE + 4);
-  EXPECT_EQ(operand.address, static_cast<uint16_t>(TestMachine::CODE + 4 + 4));
+  t.expect_reg(7, CODE + 4);
+  t.expect_eq(operand.address, CODE + 4 + 4, "address");
 }

@@ -1,19 +1,29 @@
 /*
- * Minimal test framework for the PDP-11/20 single-operand ISA tests.
+ * Template-based test framework for the PDP-11/20 single-operand tests.
  *
- * The project's src/ka11.cpp is not yet a runnable CPU, so TestMachine provides
- * just enough fetch/decode/dispatch to invoke one single-operand instruction.
- * It simulates the instruction fetch by setting PC to CODE + 2 before calling
- * the instruction, exactly as a real fetch would.
+ * Design goals:
+ *   - Compile-time instruction dispatch via an instruction descriptor type.
+ *   - No heap allocation: tests are registered in a fixed-capacity array.
+ *   - Reuse one Machine/Context for every test instead of constructing a
+ *     56 KiB memory image per test.
+ *   - Table-driven register cases expanded at compile time, one registered
+ *     test per case, so failures keep their individual names.
+ *   - Modern diagnostics via std::source_location and std::string_view.
  */
 #pragma once
 #ifndef ICE_PDP_TEST_FRAMEWORK_H
 #define ICE_PDP_TEST_FRAMEWORK_H
 
+#include <array>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <initializer_list>
-#include <vector>
+#include <source_location>
+#include <span>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 #include "instructions/instructions.hpp"
 #include "types.hpp"
@@ -21,260 +31,423 @@
 
 namespace test {
 
-inline int failures = 0;
+inline constexpr std::uint16_t CODE = 01000;
+inline constexpr std::uint16_t DATA = 02000;
+inline constexpr std::uint16_t TARGET = 03000;
 
-using TestFn = void (*)();
+struct Flags
+{
+  bool n{};
+  bool z{};
+  bool v{};
+  bool c{};
+
+  friend constexpr bool operator==(const Flags&, const Flags&) = default;
+
+  friend constexpr Flags
+  operator|(Flags lhs, Flags rhs) noexcept
+  {
+    return Flags{ lhs.n || rhs.n,
+                  lhs.z || rhs.z,
+                  lhs.v || rhs.v,
+                  lhs.c || rhs.c };
+  }
+};
+
+namespace flag {
+inline constexpr Flags none{};
+inline constexpr Flags n{ .n = true };
+inline constexpr Flags z{ .z = true };
+inline constexpr Flags v{ .v = true };
+inline constexpr Flags c{ .c = true };
+inline constexpr Flags all{ .n = true, .z = true, .v = true, .c = true };
+} // namespace flag
+
+struct Context;
+
+using TestFn = void (*)(Context&);
 
 struct TestCase
 {
-  const char* name;
+  std::string_view name;
   TestFn fn;
 };
 
-inline std::vector<TestCase>&
-registry()
+class Registry
 {
-  static std::vector<TestCase> tests;
-  return tests;
-}
+public:
+  static constexpr std::size_t capacity = 512;
 
-struct Registrar
-{
-  Registrar(const char* name, TestFn fn) { registry().push_back({ name, fn }); }
+  constexpr void
+  add(std::string_view name, TestFn fn) noexcept
+  {
+    if (size_ < capacity) {
+      cases_[size_++] = TestCase{ name, fn };
+    }
+  }
+
+  [[nodiscard]] constexpr std::span<const TestCase>
+  cases() const noexcept
+  {
+    return { cases_.data(), size_ };
+  }
+
+private:
+  std::array<TestCase, capacity> cases_{};
+  std::size_t size_{};
 };
 
-inline void
-fail_message(const char* message)
+inline Registry&
+registry() noexcept
 {
-  ++failures;
-  std::printf("  %s\n", message);
+  static Registry instance;
+  return instance;
 }
 
-inline void
-expect_eq(const char* file,
-          int line,
-          const char* what,
-          unsigned long actual,
-          unsigned long expected)
+template<auto Fn>
+struct Registrar
 {
-  if (actual == expected) {
-    return;
+  explicit Registrar(std::string_view name) noexcept
+  {
+    registry().add(name, Fn);
   }
-  ++failures;
-  std::printf("  %s:%d: %s: got 0%lo, expected 0%lo\n",
-              file,
-              line,
-              what,
-              actual,
-              expected);
-}
+};
 
-inline void
-expect_true(const char* file, int line, const char* what, bool actual)
+template<class Op>
+concept SingleOperandOp =
+  requires(Types::MemoryT& memory,
+           Types::RegistersT& registers,
+           Instructions::Instruction instruction) {
+    { Op::opcode } -> std::convertible_to<std::uint16_t>;
+    { Op::run(memory, registers, instruction) } -> std::same_as<void>;
+  };
+
+template<void (*Fn)(Types::MemoryT&,
+                    Types::RegistersT&,
+                    Instructions::Instruction),
+         std::uint16_t Opcode>
+struct SingleOperand
 {
-  if (actual) {
-    return;
+  static constexpr std::uint16_t opcode = Opcode;
+
+  static void
+  run(Types::MemoryT& memory,
+      Types::RegistersT& registers,
+      Instructions::Instruction instruction)
+  {
+    Fn(memory, registers, instruction);
   }
-  ++failures;
-  std::printf("  %s:%d: %s: expected true\n", file, line, what);
-}
+};
 
-inline void
-expect_flags(const char* file,
-             int line,
-             bool negative,
-             bool zero,
-             bool overflow,
-             bool carry,
-             uint16_t psw)
+namespace op {
+using Clr = SingleOperand<&Instructions::clr, 050>;
+using Com = SingleOperand<&Instructions::com, 051>;
+using Inc = SingleOperand<&Instructions::inc, 052>;
+using Dec = SingleOperand<&Instructions::dec, 053>;
+using Neg = SingleOperand<&Instructions::neg, 054>;
+using Adc = SingleOperand<&Instructions::adc, 055>;
+using Sbc = SingleOperand<&Instructions::sbc, 056>;
+using Tst = SingleOperand<&Instructions::tst, 057>;
+using Ror = SingleOperand<&Instructions::ror, 060>;
+using Rol = SingleOperand<&Instructions::rol, 061>;
+using Asr = SingleOperand<&Instructions::asr, 062>;
+using Asl = SingleOperand<&Instructions::asl, 063>;
+using Swab = SingleOperand<&Instructions::swab, 003>;
+} // namespace op
+
+class Machine
 {
-  const bool actual_negative = (psw >> 3) & 1;
-  const bool actual_zero = (psw >> 2) & 1;
-  const bool actual_overflow = (psw >> 1) & 1;
-  const bool actual_carry = psw & 1;
-
-  if (actual_negative == negative && actual_zero == zero &&
-      actual_overflow == overflow && actual_carry == carry) {
-    return;
-  }
-
-  ++failures;
-  std::printf("  %s:%d: PSW: got N=%d Z=%d V=%d C=%d, "
-              "expected N=%d Z=%d V=%d C=%d\n",
-              file,
-              line,
-              actual_negative,
-              actual_zero,
-              actual_overflow,
-              actual_carry,
-              negative,
-              zero,
-              overflow,
-              carry);
-}
-
-} // namespace test
-
-struct TestMachine
-{
-  static constexpr uint16_t CODE = 01000;
-  static constexpr uint16_t DATA = 02000;
-  static constexpr uint16_t TARGET = 03000;
-
+public:
   Types::RegistersT registers{};
   Types::MemoryT memory{};
 
-  void reset(uint16_t psw = 0)
+  static constexpr std::uint16_t
+  encode(Flags flags) noexcept
+  {
+    return static_cast<std::uint16_t>((flags.n ? 8 : 0) | (flags.z ? 4 : 0) |
+                                      (flags.v ? 2 : 0) | (flags.c ? 1 : 0));
+  }
+
+  static constexpr std::uint16_t
+  encode(std::uint16_t opcode,
+         Instructions::Mode mode,
+         std::uint8_t reg,
+         bool is_byte) noexcept
+  {
+    return static_cast<std::uint16_t>((is_byte ? 0100000 : 0) |
+                                      (opcode << 6) |
+                                      (std::to_underlying(mode) << 3) | reg);
+  }
+
+  void
+  reset(Flags flags = {})
   {
     registers.fill(0);
     memory.fill(0);
-    registers[Types::status] = psw;
+    registers[Types::status] = encode(flags);
   }
 
-  // Write `word` at CODE (plus optional operand words following it), move PC
-  // past the instruction word, then execute exactly one single-operand
-  // instruction.
-  void execute(uint16_t word, std::initializer_list<uint16_t> trailing = {})
+  template<SingleOperandOp Op,
+           bool IsByte = false,
+           std::convertible_to<std::uint16_t>... Trailing>
+  void
+  execute(Instructions::Mode mode, std::uint8_t reg, Trailing... trailing)
   {
-    uint16_t address = CODE;
+    const std::uint16_t word = encode(Op::opcode, mode, reg, IsByte);
+
+    std::uint16_t address = CODE;
     write_word(memory, address, word);
     address += 2;
-    for (uint16_t value : trailing) {
-      write_word(memory, address, value);
-      address += 2;
-    }
+    ((write_word(memory, address, static_cast<std::uint16_t>(trailing)),
+      address += 2),
+     ...);
 
     // A real fetch leaves PC pointing at the word after the instruction.
-    registers[Types::Registers::program_counter] = CODE + 2;
+    registers[Types::program_counter] = CODE + 2;
 
-    const Instructions::Instruction instruction =
-      Instructions::extract(word);
+    const Instructions::Instruction instruction = Instructions::extract(word);
+    Op::run(memory, registers, instruction);
+  }
+};
 
-    if (instruction.is_double) {
-      test::fail_message(
-        "test machine received a double-operand instruction");
+class Context
+{
+public:
+  Machine machine;
+  int failures = 0;
+  std::size_t checks = 0;
+
+  void
+  reset(Flags flags = {})
+  {
+    machine.reset(flags);
+  }
+
+  [[nodiscard]] std::uint16_t&
+  reg(std::size_t index) noexcept
+  {
+    return machine.registers[index];
+  }
+
+  void
+  set_word(std::uint16_t address, std::uint16_t value)
+  {
+    write_word(machine.memory, address, value);
+  }
+
+  void
+  set_byte(std::uint16_t address, std::uint8_t value)
+  {
+    write_byte(machine.memory, address, value);
+  }
+
+  template<SingleOperandOp Op, bool IsByte = false, class... Trailing>
+  void
+  execute(Instructions::Mode mode,
+          std::uint8_t reg_index,
+          Trailing... trailing)
+  {
+    machine.execute<Op, IsByte>(mode, reg_index, trailing...);
+  }
+
+  void
+  expect_eq(std::uint32_t actual,
+            std::uint32_t expected,
+            std::string_view what,
+            std::source_location loc = std::source_location::current())
+  {
+    ++checks;
+    if (actual == expected) {
       return;
     }
+    ++failures;
+    print_prefix(loc, what);
+    std::printf("got 0%lo, expected 0%lo\n",
+                static_cast<unsigned long>(actual),
+                static_cast<unsigned long>(expected));
+  }
 
-    switch (instruction.opcode) {
-      case 003:
-        Instructions::swab(memory, registers, instruction);
-        break;
-      case 050:
-        Instructions::clr(memory, registers, instruction);
-        break;
-      case 051:
-        Instructions::com(memory, registers, instruction);
-        break;
-      case 052:
-        Instructions::inc(memory, registers, instruction);
-        break;
-      case 053:
-        Instructions::dec(memory, registers, instruction);
-        break;
-      case 054:
-        Instructions::neg(memory, registers, instruction);
-        break;
-      case 055:
-        Instructions::adc(memory, registers, instruction);
-        break;
-      case 056:
-        Instructions::sbc(memory, registers, instruction);
-        break;
-      case 057:
-        Instructions::tst(memory, registers, instruction);
-        break;
-      case 060:
-        Instructions::ror(memory, registers, instruction);
-        break;
-      case 061:
-        Instructions::rol(memory, registers, instruction);
-        break;
-      case 062:
-        Instructions::asr(memory, registers, instruction);
-        break;
-      case 063:
-        Instructions::asl(memory, registers, instruction);
-        break;
-      default:
-        test::fail_message("test machine received an unknown opcode");
-        break;
+  void
+  expect_true(bool actual,
+              std::string_view what,
+              std::source_location loc = std::source_location::current())
+  {
+    ++checks;
+    if (actual) {
+      return;
+    }
+    ++failures;
+    print_prefix(loc, what);
+    std::printf("expected true\n");
+  }
+
+  void
+  expect_reg(std::size_t index,
+             std::uint16_t expected,
+             std::string_view what = {},
+             std::source_location loc = std::source_location::current())
+  {
+    ++checks;
+    const std::uint16_t actual = machine.registers[index];
+    if (actual == expected) {
+      return;
+    }
+    ++failures;
+    print_prefix(loc, what);
+    std::printf("R%zu: got 0%lo, expected 0%lo\n",
+                index,
+                static_cast<unsigned long>(actual),
+                static_cast<unsigned long>(expected));
+  }
+
+  void
+  expect_pc(std::uint16_t expected,
+            std::string_view what = "PC",
+            std::source_location loc = std::source_location::current())
+  {
+    expect_reg(Types::program_counter, expected, what, loc);
+  }
+
+  void
+  expect_word(std::uint16_t address,
+              std::uint16_t expected,
+              std::string_view what = "word",
+              std::source_location loc = std::source_location::current())
+  {
+    ++checks;
+    const std::uint16_t actual = read_word(machine.memory, address);
+    if (actual == expected) {
+      return;
+    }
+    ++failures;
+    print_prefix(loc, what);
+    std::printf("[0%lo]: got 0%lo, expected 0%lo\n",
+                static_cast<unsigned long>(address),
+                static_cast<unsigned long>(actual),
+                static_cast<unsigned long>(expected));
+  }
+
+  void
+  expect_byte(std::uint16_t address,
+              std::uint8_t expected,
+              std::string_view what = "byte",
+              std::source_location loc = std::source_location::current())
+  {
+    ++checks;
+    const std::uint8_t actual = read_byte(machine.memory, address);
+    if (actual == expected) {
+      return;
+    }
+    ++failures;
+    print_prefix(loc, what);
+    std::printf("[0%lo]: got 0%lo, expected 0%lo\n",
+                static_cast<unsigned long>(address),
+                static_cast<unsigned long>(actual),
+                static_cast<unsigned long>(expected));
+  }
+
+  void
+  expect_flags(Flags expected,
+               std::string_view what = {},
+               std::source_location loc = std::source_location::current())
+  {
+    ++checks;
+    const std::uint16_t psw = machine.registers[Types::status];
+    const Flags actual{ .n = ((psw >> 3) & 1) != 0,
+                        .z = ((psw >> 2) & 1) != 0,
+                        .v = ((psw >> 1) & 1) != 0,
+                        .c = (psw & 1) != 0 };
+    if (actual == expected) {
+      return;
+    }
+    ++failures;
+    print_prefix(loc, what);
+    std::printf("PSW: got N=%d Z=%d V=%d C=%d, "
+                "expected N=%d Z=%d V=%d C=%d\n",
+                actual.n,
+                actual.z,
+                actual.v,
+                actual.c,
+                expected.n,
+                expected.z,
+                expected.v,
+                expected.c);
+  }
+
+private:
+  static void
+  print_prefix(std::source_location loc, std::string_view what)
+  {
+    std::printf("  %s:%u: ",
+                loc.file_name(),
+                static_cast<unsigned>(loc.line()));
+    if (!what.empty()) {
+      std::printf("%.*s: ",
+                  static_cast<int>(what.size()),
+                  what.data());
     }
   }
 };
 
-// Addressing mode field values (bits 5..3 of a single-operand instruction).
-enum : uint16_t
+// A register-mode case for a single-operand instruction. All cases in a suite
+// execute on R0 so the table stays uniform.
+struct RegisterCase
 {
-  MODE_REGISTER = 0,
-  MODE_REGISTER_DEFERRED = 1,
-  MODE_AUTOINCREMENT = 2,
-  MODE_AUTOINCREMENT_DEFERRED = 3,
-  MODE_AUTODECREMENT = 4,
-  MODE_AUTODECREMENT_DEFERRED = 5,
-  MODE_INDEX = 6,
-  MODE_INDEX_DEFERRED = 7,
+  std::string_view name;
+  std::uint16_t initial;
+  std::uint16_t expected;
+  Flags psw{};
+  Flags expected_flags{};
 };
 
-// Encode a single-operand instruction. `opcode` is the octal opcode without
-// the byte bit (050 CLR, 052 INC, 003 SWAB, ...).
-inline uint16_t
-single_op(uint16_t opcode, uint16_t mode, uint16_t reg, bool is_byte = false)
+template<class Suite, std::size_t Index>
+void
+run_register_case(Context& t)
 {
-  return static_cast<uint16_t>((is_byte ? 0100000 : 0) | (opcode << 6) |
-                               (mode << 3) | reg);
+  const RegisterCase& c = Suite::cases[Index];
+
+  t.reset(c.psw);
+  t.reg(0) = c.initial;
+  t.execute<typename Suite::Op, Suite::is_byte>(
+    Instructions::Mode::Register, 0);
+  t.expect_reg(0, c.expected, c.name);
+  t.expect_flags(c.expected_flags, c.name);
 }
 
+template<class Suite, std::size_t... Indices>
+void
+register_suite_impl(std::index_sequence<Indices...>)
+{
+  (registry().add(Suite::cases[Indices].name,
+                  &run_register_case<Suite, Indices>),
+   ...);
+}
+
+template<class Suite>
+void
+register_suite()
+{
+  register_suite_impl<Suite>(
+    std::make_index_sequence<Suite::cases.size()>{});
+}
+
+template<class Suite>
+struct SuiteRegistrar
+{
+  SuiteRegistrar() { register_suite<Suite>(); }
+};
+
+} // namespace test
+
 #define TEST(name)                                                             \
-  static void name();                                                          \
-  static ::test::Registrar name##_registrar(#name, name);                      \
-  static void name()
+  static void name(::test::Context&);                                          \
+  [[maybe_unused]] static const ::test::Registrar<&name> name##_registrar{     \
+    #name                                                                      \
+  };                                                                           \
+  static void name(::test::Context& t)
 
-#define EXPECT_EQ(actual, expected)                                            \
-  ::test::expect_eq(__FILE__,                                                  \
-                    __LINE__,                                                  \
-                    #actual,                                                   \
-                    static_cast<unsigned long>(actual),                        \
-                    static_cast<unsigned long>(expected))
-
-#define EXPECT_TRUE(condition)                                                 \
-  ::test::expect_true(__FILE__, __LINE__, #condition, (condition))
-
-#define EXPECT_REG(index, expected)                                            \
-  ::test::expect_eq(__FILE__,                                                  \
-                    __LINE__,                                                  \
-                    "R" #index,                                                \
-                    m.registers[index],                                        \
-                    static_cast<unsigned long>(expected))
-
-#define EXPECT_PC(expected)                                                    \
-  ::test::expect_eq(__FILE__,                                                  \
-                    __LINE__,                                                  \
-                    "PC",                                                      \
-                    m.registers[Types::program_counter],                       \
-                    static_cast<unsigned long>(expected))
-
-#define EXPECT_WORD(address, expected)                                         \
-  ::test::expect_eq(__FILE__,                                                  \
-                    __LINE__,                                                  \
-                    "word",                                                    \
-                    read_word(m.memory, (address)),                            \
-                    static_cast<unsigned long>(expected))
-
-#define EXPECT_BYTE(address, expected)                                         \
-  ::test::expect_eq(__FILE__,                                                  \
-                    __LINE__,                                                  \
-                    "byte",                                                    \
-                    read_byte(m.memory, (address)),                            \
-                    static_cast<unsigned long>(expected))
-
-#define EXPECT_FLAGS(n, z, v, c)                                               \
-  ::test::expect_flags(__FILE__,                                               \
-                       __LINE__,                                               \
-                       (n),                                                    \
-                       (z),                                                    \
-                       (v),                                                    \
-                       (c),                                                    \
-                       m.registers[Types::status])
+#define REGISTER_SUITE(SuiteType)                                              \
+  [[maybe_unused]] static const ::test::SuiteRegistrar<SuiteType>               \
+    SuiteType##_registrar
 
 #endif

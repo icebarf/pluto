@@ -6,103 +6,54 @@
  *   V set if result is 100000 word (200 byte).
  *   C cleared if result is 0; set otherwise.
  */
+#include <array>
+
 #include "test_framework.hpp"
 
-TEST(neg_word_example)
+using namespace test;
+using enum Instructions::Mode;
+
+namespace {
+
+struct NegWordCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0000010;
+  using Op = op::Neg;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(054, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "neg_word_example", 0000010, 0177770, {}, flag::n | flag::c },
+    { "neg_word_zero", 0, 0, {}, flag::z },
+    { "neg_word_two", 2, 0177776, {}, flag::n | flag::c },
+    { "neg_word_most_negative", 0100000, 0100000, {}, flag::n | flag::v | flag::c },
+  });
+};
+REGISTER_SUITE(NegWordCases);
 
-  // Handbook example: 000010 -> 177770, NZVC = 1001.
-  EXPECT_REG(0, 0177770);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(neg_word_zero)
+struct NegByteCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0;
+  using Op = op::Neg;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(054, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "neg_byte_register_preserves_high_byte", 012001, 012377,
+      {}, flag::n | flag::c },
+    { "neg_byte_zero", 012000, 012000, {}, flag::z },
+    { "neg_byte_most_negative", 012200, 012200, {}, flag::n | flag::v | flag::c },
+  });
+};
+REGISTER_SUITE(NegByteCases);
 
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 0); // C must be cleared when result is zero
-}
-
-TEST(neg_word_two)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 2;
-
-  m.execute(single_op(054, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0177776);
-  EXPECT_FLAGS(1, 0, 0, 1); // result non-zero -> C set
-}
-
-TEST(neg_word_most_negative)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100000;
-
-  m.execute(single_op(054, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0100000);
-  EXPECT_FLAGS(1, 0, 1, 1);
-}
-
-TEST(neg_byte_register_preserves_high_byte)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012001;
-
-  m.execute(single_op(054, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012377);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(neg_byte_zero)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012000; // low byte is zero
-
-  m.execute(single_op(054, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012000);
-  EXPECT_FLAGS(0, 1, 0, 0);
-}
-
-TEST(neg_byte_most_negative)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012200;
-
-  m.execute(single_op(054, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012200);
-  EXPECT_FLAGS(1, 0, 1, 1);
-}
+} // namespace
 
 TEST(neg_word_autoincrement)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = TestMachine::DATA;
-  write_word(m.memory, TestMachine::DATA, 1);
+  t.reset();
+  t.reg(0) = DATA;
+  t.set_word(DATA, 1);
 
-  m.execute(single_op(054, MODE_AUTOINCREMENT, 0));
+  t.execute<op::Neg>(AutoIncrement, 0);
 
-  EXPECT_WORD(TestMachine::DATA, 0177777);
-  EXPECT_REG(0, TestMachine::DATA + 2);
-  EXPECT_FLAGS(1, 0, 0, 1);
+  t.expect_word(DATA, 0177777);
+  t.expect_reg(0, DATA + 2);
+  t.expect_flags(flag::n | flag::c);
 }

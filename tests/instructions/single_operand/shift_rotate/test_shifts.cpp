@@ -10,306 +10,121 @@
  * For byte variants, N is result bit 7 and Z is the low byte being zero.
  * Register high bytes are preserved.
  */
+#include <array>
+
 #include "test_framework.hpp"
 
-TEST(asl_word_one)
+using namespace test;
+
+namespace {
+
+struct AslWordCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 1;
+  using Op = op::Asl;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(063, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "asl_word_one", 1, 2, {}, {} },
+    { "asl_word_msb_out", 0100000, 0, {}, flag::z | flag::v | flag::c },
+    { "asl_word_overflow", 0040000, 0100000, {}, flag::n | flag::v },
+    { "asl_word_carry_and_result", 0100001, 2, {}, flag::v | flag::c },
+  });
+};
+REGISTER_SUITE(AslWordCases);
 
-  EXPECT_REG(0, 2);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(asl_word_msb_out)
+struct AslByteCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100000;
+  using Op = op::Asl;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(063, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "aslb_msb_out_preserves_high_byte", 012200, 012000,
+      {}, flag::z | flag::v | flag::c },
+    { "aslb_overflow", 012100, 012200, {}, flag::n | flag::v },
+  });
+};
+REGISTER_SUITE(AslByteCases);
 
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(asl_word_overflow)
+struct AsrWordCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0040000;
+  using Op = op::Asr;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(063, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "asr_word_four", 4, 2, {}, {} },
+    { "asr_word_sign_replicated", 0100000, 0140000, {}, flag::n | flag::v },
+    { "asr_word_lsb_out", 1, 0, {}, flag::z | flag::v | flag::c },
+    { "asr_word_odd_negative", 0100001, 0140000, {}, flag::n | flag::c },
+  });
+};
+REGISTER_SUITE(AsrWordCases);
 
-  EXPECT_REG(0, 0100000);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(asl_word_carry_and_result)
+struct AsrByteCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100001;
+  using Op = op::Asr;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(063, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "asrb_sign_replicated_preserves_high_byte", 012200, 012300,
+      {}, flag::n | flag::v },
+    { "asrb_lsb_out", 012001, 012000, {}, flag::z | flag::v | flag::c },
+    { "asrb_odd_negative", 012201, 012300, {}, flag::n | flag::c },
+  });
+};
+REGISTER_SUITE(AsrByteCases);
 
-  EXPECT_REG(0, 2);
-  EXPECT_FLAGS(0, 0, 1, 1);
-}
-
-TEST(aslb_msb_out_preserves_high_byte)
+struct RolWordCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012200;
+  using Op = op::Rol;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(063, MODE_REGISTER, 0, true));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "rol_word_one", 1, 2, {}, {} },
+    { "rol_word_carry_in", 1, 3, flag::c, {} },
+    { "rol_word_msb_out", 0100000, 0, {}, flag::z | flag::v | flag::c },
+    { "rol_word_msb_out_with_carry_in", 0100001, 3, flag::c, flag::v | flag::c },
+  });
+};
+REGISTER_SUITE(RolWordCases);
 
-  // 012200 = 0x1480; low byte 0x80 shifts out, high byte 0x14 survives.
-  EXPECT_REG(0, 012000); // 0x1400
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(aslb_overflow)
+struct RolByteCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012100;
+  using Op = op::Rol;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(063, MODE_REGISTER, 0, true));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "rolb_msb_out_preserves_high_byte", 012200, 012000,
+      {}, flag::z | flag::v | flag::c },
+    { "rolb_carry_in", 012001, 012003, flag::c, {} },
+  });
+};
+REGISTER_SUITE(RolByteCases);
 
-  EXPECT_REG(0, 012200);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(asr_word_four)
+struct RorWordCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 4;
+  using Op = op::Ror;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(062, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "ror_word_two", 2, 1, {}, {} },
+    { "ror_word_carry_in", 2, 0100001, flag::c, flag::n | flag::v },
+    { "ror_word_lsb_out", 1, 0, {}, flag::z | flag::v | flag::c },
+    { "ror_word_lsb_out_with_carry_in", 1, 0100000, flag::c, flag::n | flag::c },
+  });
+};
+REGISTER_SUITE(RorWordCases);
 
-  EXPECT_REG(0, 2);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(asr_word_sign_replicated)
+struct RorByteCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100000;
+  using Op = op::Ror;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(062, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "rorb_lsb_out_preserves_high_byte", 012001, 012000,
+      {}, flag::z | flag::v | flag::c },
+    { "rorb_carry_in", 012001, 012200, flag::c, flag::n | flag::c },
+  });
+};
+REGISTER_SUITE(RorByteCases);
 
-  EXPECT_REG(0, 0140000);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(asr_word_lsb_out)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 1;
-
-  m.execute(single_op(062, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(asr_word_odd_negative)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100001;
-
-  m.execute(single_op(062, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0140000);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(asrb_sign_replicated_preserves_high_byte)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012200;
-
-  m.execute(single_op(062, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012300);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(asrb_lsb_out)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012001;
-
-  m.execute(single_op(062, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012000);
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(asrb_odd_negative)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012201;
-
-  m.execute(single_op(062, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012300);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(rol_word_one)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 1;
-
-  m.execute(single_op(061, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 2);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(rol_word_carry_in)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 1;
-
-  m.execute(single_op(061, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 3);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(rol_word_msb_out)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100000;
-
-  m.execute(single_op(061, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(rol_word_msb_out_with_carry_in)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 0100001;
-
-  m.execute(single_op(061, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 3);
-  EXPECT_FLAGS(0, 0, 1, 1);
-}
-
-TEST(rolb_msb_out_preserves_high_byte)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012200;
-
-  m.execute(single_op(061, MODE_REGISTER, 0, true));
-
-  // 012200 = 0x1480; low byte 0x80 rotates out, high byte 0x14 survives.
-  EXPECT_REG(0, 012000); // 0x1400
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(rolb_carry_in)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012001;
-
-  m.execute(single_op(061, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012003);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(ror_word_two)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 2;
-
-  m.execute(single_op(060, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 1);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(ror_word_carry_in)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 2;
-
-  m.execute(single_op(060, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0100001);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(ror_word_lsb_out)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 1;
-
-  m.execute(single_op(060, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(ror_word_lsb_out_with_carry_in)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 1;
-
-  m.execute(single_op(060, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0100000);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(rorb_lsb_out_preserves_high_byte)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012001;
-
-  m.execute(single_op(060, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012000);
-  EXPECT_FLAGS(0, 1, 1, 1);
-}
-
-TEST(rorb_carry_in)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012001;
-
-  m.execute(single_op(060, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012200);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
+} // namespace

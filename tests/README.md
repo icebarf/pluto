@@ -6,10 +6,35 @@ TST/TSTB, ASL/ASLB, ASR/ASRB, ROL/ROLB, ROR/RORB, ADC/ADCB, SBC/SBCB and
 SWAB. They also cover the addressing modes and the operand resolution
 helpers that the instructions use.
 
-The project's `src/ka11.cpp` is not a runnable CPU yet, so `test_framework.hpp`
-provides a small `TestMachine` that places one instruction at `01000`, sets PC
-to `01002` (simulating the instruction fetch), and calls the instruction
-implementation directly through `Instructions::extract()`.
+The project's `src/ka11.cpp` is not a runnable CPU yet, so the test framework
+provides a `Machine` that places one instruction at `01000`, sets PC to `01002`
+(simulating the instruction fetch), and dispatches directly to the instruction
+implementation. Dispatch is a template parameter, so there is no runtime
+opcode switch in the test path.
+
+This suite intentionally covers only the single-operand instructions. Tests for
+MOV/ADD/SUB/CMP/BIS/BIT/BIC, branches, traps and the other newer
+implementations are out of scope.
+
+## Framework design
+
+- **Compile-time instruction descriptors.** `op::Clr`, `op::Inc`, etc. wrap the
+  implementation function and opcode. `t.execute<op::Clr, true>(mode, reg, ...)`
+  encodes and dispatches at compile time.
+- **No heap allocation.** `test::Registry` is a fixed `std::array` of 512 test
+  cases; registration no longer grows a `std::vector`.
+- **One reused machine.** `main()` owns a single `Context`/`Machine`; each test
+  calls `reset()`. This avoids constructing a 56 KiB memory image per test.
+- **Compile-time case tables.** Register-only cases are
+  `constexpr std::array<RegisterCase>` tables. `SuiteRegistrar` expands them
+  with `std::index_sequence` and a fold expression, registering one named test
+  per case. All 122 original case names are preserved.
+- **Modern diagnostics.** Assertions use `std::source_location`,
+  `std::string_view`, and `std::span`; test files use `using enum`,
+  designated initializers, `std::to_array`, concepts and `if constexpr`-free
+  template dispatch.
+- **Expected values** are encoded with a small `Flags` value type and `flag::`
+  constants, so tests read as `flag::n | flag::v` instead of raw bit masks.
 
 ## Build and run
 
@@ -71,7 +96,7 @@ tests/
 
 | Directory | Contents |
 | --- | --- |
-| `support/` | Minimal test registry, assertions, `TestMachine`, instruction encoder |
+| `support/` | Template test registry, assertions, `Machine`, instruction descriptors, compile-time case tables |
 | `decode/` | Single-operand instruction format (and SUB/MOVB classification guards) |
 | `addressing/` | Byte/word step sizes, SP/PC rules, deferred modes, index PC handling |
 | `operand/` | `resolve_operand` / `read_operand` / `write_operand` semantics |
@@ -81,14 +106,14 @@ tests/
 | `instructions/single_operand/byte_swap/` | SWAB |
 
 Tests use `CODE = 01000`, `DATA = 02000` and `TARGET = 03000` so that test data
-cannot overlap the instruction word. `execute()` writes the instruction at
-`01000`, the optional index/immediate word at `01002`, then sets PC to `01002`
-before calling the implementation.
+cannot overlap the instruction word. `t.execute<op::...>()` writes the
+instruction at `01000`, the optional index/immediate words at `01002`, then sets
+PC to `01002` before calling the implementation.
 
 ## Current result
 
 ```text
-122 passed, 0 failed, 122 total
+122 passed, 0 failed, 122 total (284 checks)
 ```
 
 All single-operand instruction, addressing and operand-helper tests pass.

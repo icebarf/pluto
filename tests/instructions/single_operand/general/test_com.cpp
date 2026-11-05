@@ -5,95 +5,65 @@
  *   N/Z from result, V cleared, C set.
  *   Byte: only the low byte is complemented; register high byte preserved.
  */
+#include <array>
+
 #include "test_framework.hpp"
 
-TEST(com_word_example)
+using namespace test;
+using enum Instructions::Mode;
+
+namespace {
+
+struct ComWordCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 013333;
+  using Op = op::Com;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(051, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "com_word_example", 013333, 0164444, {}, flag::n | flag::c },
+    { "com_word_zero", 0, 0177777, {}, flag::n | flag::c },
+    { "com_word_all_ones", 0177777, 0, {}, flag::z | flag::c },
+  });
+};
+REGISTER_SUITE(ComWordCases);
 
-  // Handbook example: 013333 -> 164444, NZVC = 1001.
-  EXPECT_REG(0, 0164444);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(com_word_zero)
+struct ComByteCases
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0;
+  using Op = op::Com;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(051, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "com_byte_preserves_high_byte", 0022222, 0022155, {}, flag::c },
+    { "com_byte_zero", 0000377, 0, {}, flag::z | flag::c },
+  });
+};
+REGISTER_SUITE(ComByteCases);
 
-  EXPECT_REG(0, 0177777);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(com_word_all_ones)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0177777;
-
-  m.execute(single_op(051, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 1);
-}
-
-TEST(com_byte_preserves_high_byte)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0022222;
-
-  m.execute(single_op(051, MODE_REGISTER, 0, true));
-
-  // Low byte 0222 -> 0155, high byte 0022 is preserved.
-  EXPECT_REG(0, 0022155);
-  EXPECT_FLAGS(0, 0, 0, 1);
-}
-
-TEST(com_byte_zero)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0000377;
-
-  m.execute(single_op(051, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 1);
-}
+} // namespace
 
 TEST(com_word_memory)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = TestMachine::DATA;
-  write_word(m.memory, TestMachine::DATA, 013333);
+  t.reset();
+  t.reg(0) = DATA;
+  t.set_word(DATA, 013333);
 
-  m.execute(single_op(051, MODE_REGISTER_DEFERRED, 0));
+  t.execute<op::Com>(RegisterDeferred, 0);
 
-  EXPECT_WORD(TestMachine::DATA, 0164444);
-  EXPECT_REG(0, TestMachine::DATA);
-  EXPECT_FLAGS(1, 0, 0, 1);
+  t.expect_word(DATA, 0164444);
+  t.expect_reg(0, DATA);
+  t.expect_flags(flag::n | flag::c);
 }
 
 TEST(com_byte_memory_does_not_touch_neighbor)
 {
-  TestMachine m;
-  m.reset();
-  m.registers[0] = TestMachine::DATA;
-  m.memory[TestMachine::DATA] = 0xab;
-  m.memory[TestMachine::DATA + 1] = 0xcd;
+  t.reset();
+  t.reg(0) = DATA;
+  t.set_byte(DATA, 0xab);
+  t.set_byte(DATA + 1, 0xcd);
 
-  m.execute(single_op(051, MODE_REGISTER_DEFERRED, 0, true));
+  t.execute<op::Com, true>(RegisterDeferred, 0);
 
-  EXPECT_BYTE(TestMachine::DATA, 0x54);
-  EXPECT_BYTE(TestMachine::DATA + 1, 0xcd);
-  EXPECT_FLAGS(0, 0, 0, 1);
+  t.expect_byte(DATA, 0x54);
+  t.expect_byte(DATA + 1, 0xcd);
+  t.expect_flags(flag::c);
 }

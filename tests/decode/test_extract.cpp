@@ -8,60 +8,69 @@
  */
 #include "test_framework.hpp"
 
+using namespace test;
+using enum Instructions::Mode;
+
 TEST(extract_clr_word)
 {
   const auto in = Instructions::extract(05000); // CLR R0
 
-  EXPECT_EQ(in.opcode, 050);
-  EXPECT_EQ(in.is_double, false);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Word);
-  EXPECT_EQ(in.destination[0], 0);
-  EXPECT_EQ(in.mode[0], MODE_REGISTER);
+  t.expect_eq(in.opcode, 050, "CLR opcode");
+  t.expect_true(!in.is_double, "CLR is single");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Word,
+                "CLR is word");
+  t.expect_true(in.destination[0] == 0, "CLR destination register");
+  t.expect_true(in.mode[0] == Register, "CLR mode");
 }
 
 TEST(extract_clrb_is_byte)
 {
   const auto in = Instructions::extract(0105000); // CLRB R0
 
-  EXPECT_EQ(in.opcode, 050);
-  EXPECT_EQ(in.is_double, false);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Byte);
-  EXPECT_EQ(in.destination[0], 0);
-  EXPECT_EQ(in.mode[0], MODE_REGISTER);
+  t.expect_eq(in.opcode, 050, "CLRB opcode");
+  t.expect_true(!in.is_double, "CLRB is single");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Byte,
+                "CLRB is byte");
+  t.expect_true(in.destination[0] == 0, "CLRB destination register");
+  t.expect_true(in.mode[0] == Register, "CLRB mode");
 }
 
 TEST(extract_swab)
 {
   const auto in = Instructions::extract(0000300); // SWAB R0
 
-  EXPECT_EQ(in.opcode, 003);
-  EXPECT_EQ(in.is_double, false);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Word);
-  EXPECT_EQ(in.destination[0], 0);
-  EXPECT_EQ(in.mode[0], MODE_REGISTER);
+  t.expect_eq(in.opcode, 003, "SWAB opcode");
+  t.expect_true(!in.is_double, "SWAB is single");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Word,
+                "SWAB is word");
+  t.expect_true(in.destination[0] == 0, "SWAB destination register");
+  t.expect_true(in.mode[0] == Register, "SWAB mode");
 }
 
 TEST(extract_inc_autoincrement)
 {
-  const auto in = Instructions::extract(single_op(052, MODE_AUTOINCREMENT, 3));
+  const auto in = Instructions::extract(
+    Machine::encode(052, AutoIncrement, 3, false));
 
-  EXPECT_EQ(in.opcode, 052);
-  EXPECT_EQ(in.is_double, false);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Word);
-  EXPECT_EQ(in.destination[0], 3);
-  EXPECT_EQ(in.mode[0], MODE_AUTOINCREMENT);
+  t.expect_eq(in.opcode, 052, "INC opcode");
+  t.expect_true(!in.is_double, "INC is single");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Word,
+                "INC is word");
+  t.expect_true(in.destination[0] == 3, "INC destination register");
+  t.expect_true(in.mode[0] == AutoIncrement, "INC mode");
 }
 
 TEST(extract_aslb_index)
 {
-  const auto in =
-    Instructions::extract(single_op(063, MODE_INDEX, 2, true));
+  const auto in = Instructions::extract(
+    Machine::encode(063, Index, 2, true));
 
-  EXPECT_EQ(in.opcode, 063);
-  EXPECT_EQ(in.is_double, false);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Byte);
-  EXPECT_EQ(in.destination[0], 2);
-  EXPECT_EQ(in.mode[0], MODE_INDEX);
+  t.expect_eq(in.opcode, 063, "ASLB opcode");
+  t.expect_true(!in.is_double, "ASLB is single");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Byte,
+                "ASLB is byte");
+  t.expect_true(in.destination[0] == 2, "ASLB destination register");
+  t.expect_true(in.mode[0] == Index, "ASLB mode");
 }
 
 /*
@@ -73,24 +82,26 @@ TEST(extract_sub_is_double_word)
 {
   const auto in = Instructions::extract(0160000);
 
-  EXPECT_EQ(in.opcode, 016);
-  EXPECT_EQ(in.is_double, true);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Word);
+  t.expect_eq(in.opcode, 016, "SUB opcode");
+  t.expect_true(in.is_double, "SUB is double");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Word,
+                "SUB is word");
 }
 
 TEST(extract_movb_is_double_byte)
 {
   const auto in = Instructions::extract(0110000);
 
-  EXPECT_EQ(in.opcode, 011);
-  EXPECT_EQ(in.is_double, true);
-  EXPECT_TRUE(in.dest_type == Instructions::DestinationType::Byte);
+  t.expect_eq(in.opcode, 011, "MOVB opcode");
+  t.expect_true(in.is_double, "MOVB is double");
+  t.expect_true(in.dest_type == Instructions::DestinationType::Byte,
+                "MOVB is byte");
 }
 
 TEST(extract_eis_is_not_double_on_11_20)
 {
   const auto in = Instructions::extract(070000); // EIS group (11/45)
 
-  EXPECT_EQ(in.opcode, 007);
-  EXPECT_EQ(in.is_double, false);
+  t.expect_eq(in.opcode, 007, "EIS opcode");
+  t.expect_true(!in.is_double, "EIS is not double on 11/20");
 }

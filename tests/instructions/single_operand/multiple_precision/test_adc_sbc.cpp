@@ -14,233 +14,70 @@
  *     C cleared if result is 0 and C was 1; set otherwise.
  *     With C = 0 the destination is effectively unchanged.
  */
+#include <array>
+
 #include "test_framework.hpp"
 
-TEST(adc_word_carry_clear_retains_value)
+using namespace test;
+
+namespace {
+
+struct AdcWordCases
 {
-  TestMachine m;
-  m.reset(); // C = 0
-  m.registers[0] = 5;
+  using Op = op::Adc;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(055, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "adc_word_carry_clear_retains_value", 5, 5, {}, {} },
+    { "adc_word_carry_set_adds_one", 5, 6, flag::c, {} },
+    { "adc_word_carry_out", 0177777, 0, flag::c, flag::z | flag::c },
+    { "adc_word_overflow", 0077777, 0100000, flag::c, flag::n | flag::v },
+  });
+};
+REGISTER_SUITE(AdcWordCases);
 
-  EXPECT_REG(0, 5);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(adc_word_carry_set_adds_one)
+struct AdcByteCases
 {
-  TestMachine m;
-  m.reset(001); // C = 1
-  m.registers[0] = 5;
+  using Op = op::Adc;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(055, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "adc_byte_carry_clear_retains_value", 012005, 012005, {}, {} },
+    { "adc_byte_carry_set_adds_one", 012005, 012006, flag::c, {} },
+    { "adc_byte_carry_out", 0000377, 0, flag::c, flag::z | flag::c },
+    { "adc_byte_overflow", 012177, 012200, flag::c, flag::n | flag::v },
+  });
+};
+REGISTER_SUITE(AdcByteCases);
 
-  EXPECT_REG(0, 6);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(adc_word_carry_out)
+struct SbcWordCases
 {
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 0177777;
+  using Op = op::Sbc;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(055, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "sbc_word_carry_clear_retains_value", 5, 5, {}, flag::c },
+    { "sbc_word_carry_set_subtracts_one", 5, 4, flag::c, flag::c },
+    { "sbc_word_result_zero_clears_carry", 1, 0, flag::c, flag::z },
+    { "sbc_word_borrow", 0, 0177777, flag::c, flag::n | flag::c },
+    { "sbc_word_overflow", 0100001, 0100000, flag::c, flag::n | flag::v | flag::c },
+  });
+};
+REGISTER_SUITE(SbcWordCases);
 
-  // Handbook p.52:
-  //   C set if (dst) was 177777 and the incoming C was 1.
-  //   V set if (dst) was 077777 and the incoming C was 1 -> V is clear here.
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 1);
-}
-
-TEST(adc_word_overflow)
+struct SbcByteCases
 {
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 0077777;
+  using Op = op::Sbc;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(055, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "sbc_byte_carry_clear_retains_value", 012005, 012005, {}, flag::c },
+    { "sbc_byte_carry_set_subtracts_one", 012005, 012004, flag::c, flag::c },
+    { "sbc_byte_result_zero_clears_carry", 012001, 012000, flag::c, flag::z },
+    { "sbc_byte_borrow", 012000, 012377, flag::c, flag::n | flag::c },
+    { "sbc_byte_overflow", 012201, 012200, flag::c, flag::n | flag::v | flag::c },
+  });
+};
+REGISTER_SUITE(SbcByteCases);
 
-  // Handbook p.52:
-  //   V set if (dst) was 077777 and the incoming C was 1.
-  //   C set if (dst) was 177777 and the incoming C was 1 -> C is clear here.
-  EXPECT_REG(0, 0100000);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(adc_byte_carry_clear_retains_value)
-{
-  TestMachine m;
-  m.reset(); // C = 0
-  m.registers[0] = 012005;
-
-  m.execute(single_op(055, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012005);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(adc_byte_carry_set_adds_one)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012005;
-
-  m.execute(single_op(055, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012006);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(adc_byte_carry_out)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 0000377;
-
-  m.execute(single_op(055, MODE_REGISTER, 0, true));
-
-  // Handbook p.52, byte form:
-  //   C set if (dst) was 0377 and the incoming C was 1.
-  //   V set if (dst) was 0177 and the incoming C was 1 -> V is clear here.
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 1);
-}
-
-TEST(adc_byte_overflow)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012177;
-
-  m.execute(single_op(055, MODE_REGISTER, 0, true));
-
-  // Handbook p.52, byte form:
-  //   V set if (dst) was 0177 and the incoming C was 1.
-  //   C set if (dst) was 0377 and the incoming C was 1 -> C is clear here.
-  EXPECT_REG(0, 012200);
-  EXPECT_FLAGS(1, 0, 1, 0);
-}
-
-TEST(sbc_word_carry_clear_retains_value)
-{
-  TestMachine m;
-  m.reset(); // C = 0
-  m.registers[0] = 5;
-
-  m.execute(single_op(056, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 5);
-  // SBC sets C unless (result == 0 && C was 1).
-  EXPECT_FLAGS(0, 0, 0, 1);
-}
-
-TEST(sbc_word_carry_set_subtracts_one)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 5;
-
-  m.execute(single_op(056, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 4);
-  EXPECT_FLAGS(0, 0, 0, 1);
-}
-
-TEST(sbc_word_result_zero_clears_carry)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 1;
-
-  m.execute(single_op(056, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 0);
-}
-
-TEST(sbc_word_borrow)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 0;
-
-  m.execute(single_op(056, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0177777);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(sbc_word_overflow)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 0100001;
-
-  m.execute(single_op(056, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0100000);
-  EXPECT_FLAGS(1, 0, 1, 1);
-}
-
-TEST(sbc_byte_carry_clear_retains_value)
-{
-  TestMachine m;
-  m.reset(); // C = 0
-  m.registers[0] = 012005;
-
-  m.execute(single_op(056, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012005);
-  EXPECT_FLAGS(0, 0, 0, 1);
-}
-
-TEST(sbc_byte_carry_set_subtracts_one)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012005;
-
-  m.execute(single_op(056, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012004);
-  EXPECT_FLAGS(0, 0, 0, 1);
-}
-
-TEST(sbc_byte_result_zero_clears_carry)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012001;
-
-  m.execute(single_op(056, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012000);
-  EXPECT_FLAGS(0, 1, 0, 0);
-}
-
-TEST(sbc_byte_borrow)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012000;
-
-  m.execute(single_op(056, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012377);
-  EXPECT_FLAGS(1, 0, 0, 1);
-}
-
-TEST(sbc_byte_overflow)
-{
-  TestMachine m;
-  m.reset(001);
-  m.registers[0] = 012201;
-
-  m.execute(single_op(056, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012200);
-  EXPECT_FLAGS(1, 0, 1, 1);
-}
+} // namespace

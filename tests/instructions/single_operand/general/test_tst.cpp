@@ -5,78 +5,51 @@
  *   N/Z from the destination, V and C cleared.
  *   The destination is not modified.
  */
+#include <array>
+
 #include "test_framework.hpp"
 
-TEST(tst_word_positive)
+using namespace test;
+using enum Instructions::Mode;
+
+namespace {
+
+struct TstWordCases
 {
-  TestMachine m;
-  m.reset(017);
-  m.registers[0] = 0000333;
+  using Op = op::Tst;
+  static constexpr bool is_byte = false;
 
-  m.execute(single_op(057, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "tst_word_positive", 0000333, 0000333, flag::all, {} },
+    { "tst_word_zero", 0, 0, flag::all, flag::z },
+    { "tst_word_negative", 0100000, 0100000, {}, flag::n },
+  });
+};
+REGISTER_SUITE(TstWordCases);
 
-  EXPECT_REG(0, 0000333);
-  EXPECT_FLAGS(0, 0, 0, 0);
-}
-
-TEST(tst_word_zero)
+struct TstByteCases
 {
-  TestMachine m;
-  m.reset(017);
-  m.registers[0] = 0;
+  using Op = op::Tst;
+  static constexpr bool is_byte = true;
 
-  m.execute(single_op(057, MODE_REGISTER, 0));
+  static constexpr auto cases = std::to_array<RegisterCase>({
+    { "tst_byte_negative", 0000200, 0000200, {}, flag::n },
+    { "tst_byte_zero_ignores_high_byte", 012000, 012000, {}, flag::z },
+  });
+};
+REGISTER_SUITE(TstByteCases);
 
-  EXPECT_REG(0, 0);
-  EXPECT_FLAGS(0, 1, 0, 0);
-}
-
-TEST(tst_word_negative)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0100000;
-
-  m.execute(single_op(057, MODE_REGISTER, 0));
-
-  EXPECT_REG(0, 0100000);
-  EXPECT_FLAGS(1, 0, 0, 0);
-}
-
-TEST(tst_byte_negative)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 0000200;
-
-  m.execute(single_op(057, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 0000200);
-  EXPECT_FLAGS(1, 0, 0, 0);
-}
-
-TEST(tst_byte_zero_ignores_high_byte)
-{
-  TestMachine m;
-  m.reset();
-  m.registers[0] = 012000; // low byte is zero, high byte is not
-
-  m.execute(single_op(057, MODE_REGISTER, 0, true));
-
-  EXPECT_REG(0, 012000);
-  EXPECT_FLAGS(0, 1, 0, 0);
-}
+} // namespace
 
 TEST(tst_memory_is_not_modified)
 {
-  TestMachine m;
-  m.reset(017);
-  m.registers[0] = TestMachine::DATA;
-  write_word(m.memory, TestMachine::DATA, 012345);
+  t.reset(flag::all);
+  t.reg(0) = DATA;
+  t.set_word(DATA, 012345);
 
-  m.execute(single_op(057, MODE_REGISTER_DEFERRED, 0));
+  t.execute<op::Tst>(RegisterDeferred, 0);
 
-  EXPECT_WORD(TestMachine::DATA, 012345);
-  EXPECT_REG(0, TestMachine::DATA);
-  EXPECT_FLAGS(0, 0, 0, 0);
+  t.expect_word(DATA, 012345);
+  t.expect_reg(0, DATA);
+  t.expect_flags(flag::none);
 }
