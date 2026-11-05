@@ -27,12 +27,24 @@ Instructions::jsr(Types::MemoryT& memory,
                   Types::RegistersT& registers,
                   Instruction instruction)
 {
-  uint8_t reg = (instruction.word >> 5) & 0x07;     // extract bit 6-8
-  uint16_t destination = instruction.word & 0x001f; // extract all lower 5 bits
+  uint8_t link_reg = (instruction.word >> 6) & 0x07; // extract bit 6-8
+  uint8_t reg = instruction.destination[0];
 
-  uint16_t temp = read_word(memory, destination);
+  Operand destination;
+  if (instruction.mode[0] == Mode::AutoIncrement) {
+    registers[reg] += 2;
+    destination = Operand{ false, reg, registers[reg] };
+  } else {
+    destination =
+      resolve_operand(memory, registers, reg, instruction.mode[0], false);
+  }
+
   registers[stack_pointer] -= 2;
-  write_word(memory, registers[stack_pointer], registers[reg]);
-  registers[reg] = registers[program_counter];
-  registers[program_counter] = temp;
+  write_word(memory, registers[stack_pointer], registers[link_reg]);
+  registers[link_reg] = registers[program_counter];
+  if (destination.is_register) {
+    registers[program_counter] = registers[destination.reg];
+  } else {
+    registers[program_counter] = destination.address;
+  }
 }
