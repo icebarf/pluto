@@ -59,12 +59,6 @@ Instructions::cmp(Types::MemoryT& memory,
 
   int32_t difference = source - destination;
 
-  write_operand(memory,
-                registers,
-                operands.destination,
-                static_cast<uint16_t>(difference),
-                false);
-
   set_status(StatusRegister(registers[Registers::status]),
              difference,
              source,
