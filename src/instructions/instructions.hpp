@@ -226,6 +226,11 @@ void
 sub(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
+
+void
+cmp(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 } // namespace Instructions
 
 #endif
