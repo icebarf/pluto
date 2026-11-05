@@ -386,6 +386,62 @@ void
 jmp(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
+
+// Condition Code Instructions
+void
+clc(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+sec(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+clv(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+sev(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+clz(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+sez(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+cln(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+sen(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+secc(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
+void
+clcc(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
+void
+clvc(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
 } // namespace Instructions
 
 #endif
