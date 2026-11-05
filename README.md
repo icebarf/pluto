@@ -12,9 +12,10 @@ Boot Unix v2.
 
 ## AI Disclosure
 
-AI usage is kept very minimal, but not avoided.
+AI usage is kept very minimal.
 
-Areas where I have used LLMs so far:
-- Google search results and conversing with the agent in the AI summary (used mostly for specific details in implementing KA11 Instructions).
-- Analyzing my design if I find it too awkward for my taste.
-- Generating, Compiling and Running tests for written code.
+Usage:
+
+- Generating and Running Tests
+- Analyzing Test results
+- Finding possible bug locations from above
