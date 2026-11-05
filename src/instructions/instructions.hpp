@@ -231,6 +231,22 @@ void
 cmp(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
+
+void
+bis(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+bit(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+bic(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
 } // namespace Instructions
 
 #endif
