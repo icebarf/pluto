@@ -31,9 +31,10 @@ Instructions::bgt(Types::MemoryT& memory,
   bool overflow = status.get_overflow();
   bool zero = status.get_zero();
 
-  if (zero && (negative ^ overflow)) {
+  if (zero || (negative ^ overflow)) {
     return;
   }
+
   // branch if N ^ V
   int8_t offset = static_cast<int8_t>(instruction.word & 0x00ff);
   registers[Registers::program_counter] += (offset * 2);
