@@ -28,12 +28,12 @@ set_status(StatusRegister status,
            int16_t destination,
            bool is_byte)
 {
-  status.set_negative_zero(value, is_byte);
+  status.set_negative_zero(static_cast<uint16_t>(value), is_byte);
   bool carry = value >> 16 & 1;
   carry ? status.set_carry() : status.unset_carry();
 
   bool result_sign = !status.get_negative();
-  bool source_sign = source > 0;
+  bool source_sign = source >= 0;
   bool destination_sign = destination > 0;
 
   // complement of xor of src ^ dst because we are going by the manual:
@@ -54,10 +54,9 @@ Instructions::cmp(Types::MemoryT& memory,
   DoubleOperand operands =
     fetch_double_operands(memory, registers, instruction, true);
   assert(operands.is_byte == false);
-  int16_t source = static_cast<int16_t>(operands.source_value);
-  int16_t destination = static_cast<int16_t>(operands.destination_value);
-
-  int32_t difference = source - destination;
+  uint16_t source = operands.source_value;
+  uint16_t destination = operands.destination_value;
+  uint32_t difference = source - destination;
 
   set_status(StatusRegister(registers[Registers::status]),
              difference,
