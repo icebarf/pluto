@@ -318,6 +318,16 @@ bgt(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+void
+bhi(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+blos(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
 } // namespace Instructions
 
 #endif
