@@ -30,6 +30,6 @@ Instructions::trap_3(Types::MemoryT& memory,
   write_word(memory, registers[stack_pointer], registers[status]);
   registers[stack_pointer] -= 2;
   write_word(memory, registers[stack_pointer], registers[program_counter]);
-  registers[program_counter] = read_word(memory, 14);
-  registers[status] = read_word(memory, 16);
+  registers[program_counter] = read_word(memory, 014);
+  registers[status] = read_word(memory, 016);
 }

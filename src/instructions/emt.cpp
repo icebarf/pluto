@@ -30,6 +30,6 @@ Instructions::emt(Types::MemoryT& memory,
   write_word(memory, registers[stack_pointer], registers[status]);
   registers[stack_pointer] -= 2;
   write_word(memory, registers[stack_pointer], registers[program_counter]);
-  registers[program_counter] = read_word(memory, 30);
-  registers[status] = read_word(memory, 32);
+  registers[program_counter] = read_word(memory, 030);
+  registers[status] = read_word(memory, 032);
 }

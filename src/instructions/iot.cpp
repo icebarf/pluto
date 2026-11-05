@@ -30,6 +30,6 @@ Instructions::iot(Types::MemoryT& memory,
   write_word(memory, registers[stack_pointer], registers[status]);
   registers[stack_pointer] -= 2;
   write_word(memory, registers[stack_pointer], registers[program_counter]);
-  registers[program_counter] = read_word(memory, 20);
-  registers[status] = read_word(memory, 22);
+  registers[program_counter] = read_word(memory, 020);
+  registers[status] = read_word(memory, 022);
 }
