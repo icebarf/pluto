@@ -29,6 +29,7 @@ Instructions::bvc(Types::MemoryT& memory,
   if (StatusRegister(registers[Registers::status]).get_overflow() == true) {
     return;
   }
-  int8_t offset = static_cast<int8_t>(instruction.opcode & 0x00ff);
+  // branch if overflow is unset
+  int8_t offset = static_cast<int8_t>(instruction.word & 0x00ff);
   registers[Registers::program_counter] += (offset * 2);
 }

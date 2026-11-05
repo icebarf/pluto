@@ -30,6 +30,6 @@ Instructions::beq(Types::MemoryT& memory,
     return;
   }
   // branch if zero is set
-  int8_t offset = static_cast<int8_t>(instruction.opcode & 0x00ff);
+  int8_t offset = static_cast<int8_t>(instruction.word & 0x00ff);
   registers[Registers::program_counter] += (offset * 2);
 }
