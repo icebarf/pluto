@@ -104,6 +104,7 @@ struct DoubleOperand
   Operand destination;
   uint16_t source_value;
   uint16_t destination_value;
+  bool is_byte;
 };
 
 Instruction
@@ -140,7 +141,7 @@ write_operand(Types::MemoryT& memory,
 fetch_double_operands(const Types::MemoryT& memory,
                       Types::RegistersT& registers,
                       const Instruction instruction,
-                      bool resolve_destination);
+                      bool read_destination_value);
 
 // INSTRUCTIONS
 // Single Operand
@@ -209,6 +210,11 @@ swab(Types::MemoryT& memory,
      Types::RegistersT& registers,
      Instruction instruction);
 
+// Double Operand
+void
+mov(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 } // namespace Instructions
 
 #endif

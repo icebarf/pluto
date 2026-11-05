@@ -327,6 +327,7 @@ Instructions::fetch_double_operands(const Types::MemoryT& memory,
 {
   bool is_byte = instruction.dest_type == DestinationType::Byte;
   DoubleOperand operands{};
+  operands.is_byte = is_byte;
   operands.source = resolve_operand(memory,
                                     registers,
                                     instruction.destination[1],
