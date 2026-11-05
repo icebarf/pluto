@@ -340,6 +340,26 @@ jsr(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
 
+// TRAP Instructions
+void
+emt(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+trap(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
+void
+trap_3(Types::MemoryT& memory,
+       Types::RegistersT& registers,
+       Instruction instruction); // instruction without mnemonic in manual
+
+void
+iot(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 } // namespace Instructions
 
 #endif
