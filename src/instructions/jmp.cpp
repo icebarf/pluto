@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "../utilities.hpp"
 #include "instructions.hpp"
 #include <cassert>
 #include <cstdint>
@@ -27,6 +26,23 @@ Instructions::jmp(Types::MemoryT& memory,
                   Types::RegistersT& registers,
                   Instruction instruction)
 {
-  uint16_t destination = instruction.word & 0x001f;
-  registers[program_counter] = read_word(memory, destination);
+
+  // special case
+  const uint8_t reg = instruction.destination[0];
+  if (instruction.mode[0] == Mode::AutoIncrement) {
+    registers[reg] += 2;
+    registers[program_counter] = registers[reg];
+    return;
+  }
+
+  Operand destination = resolve_operand(
+    memory, registers, instruction.destination[0], instruction.mode[0], false);
+
+  uint16_t pc;
+  if (destination.is_register) {
+    pc = registers[destination.reg];
+  } else {
+    pc = destination.address;
+  }
+  registers[program_counter] = pc;
 }
