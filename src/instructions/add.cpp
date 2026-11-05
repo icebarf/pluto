@@ -39,8 +39,7 @@ set_status(StatusRegister status,
   // complement of xor of src ^ dst because we are going by the manual:
   // if signs of operands agree and sign of an operand and result disagree
   // then set V to 1 else set V to 0
-  if (((~(source_sign ^ destination_sign)) && (source_sign ^ result_sign)) !=
-      false) {
+  if ((source_sign == destination_sign) && (source_sign != result_sign)) {
     status.set_overflow();
   } else {
     status.unset_overflow();

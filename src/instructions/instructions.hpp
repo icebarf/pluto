@@ -221,6 +221,11 @@ void
 add(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
+
+void
+sub(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 } // namespace Instructions
 
 #endif
