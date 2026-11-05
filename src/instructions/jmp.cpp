@@ -23,7 +23,7 @@ using namespace Instructions;
 using namespace Types;
 
 void
-Instructions::rti(Types::MemoryT& memory,
+Instructions::jmp(Types::MemoryT& memory,
                   Types::RegistersT& registers,
                   Instruction instruction)
 {
