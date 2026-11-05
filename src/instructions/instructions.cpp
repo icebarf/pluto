@@ -318,3 +318,31 @@ Instructions::write_operand(Types::MemoryT& memory,
   is_byte ? write_byte(memory, operand.address, static_cast<uint8_t>(value))
           : write_word(memory, operand.address, value);
 }
+
+[[nodiscard]] DoubleOperand
+Instructions::fetch_double_operands(const Types::MemoryT& memory,
+                                    Types::RegistersT& registers,
+                                    const Instruction instruction,
+                                    bool read_destination_value)
+{
+  bool is_byte = instruction.dest_type == DestinationType::Byte;
+  DoubleOperand operands{};
+  operands.source = resolve_operand(memory,
+                                    registers,
+                                    instruction.destination[1],
+                                    instruction.mode[1],
+                                    is_byte);
+  operands.source_value =
+    read_operand(memory, registers, operands.source, is_byte);
+
+  operands.destination = resolve_operand(memory,
+                                         registers,
+                                         instruction.destination[0],
+                                         instruction.mode[0],
+                                         is_byte);
+  if (read_destination_value) {
+    operands.destination_value =
+      read_operand(memory, registers, operands.destination, is_byte);
+  }
+  return operands;
+}

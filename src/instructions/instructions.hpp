@@ -101,7 +101,7 @@ struct Operand
 struct DoubleOperand
 {
   Operand source;
-  Operand desitnation;
+  Operand destination;
   uint16_t source_value;
   uint16_t destination_value;
 };
@@ -136,8 +136,14 @@ write_operand(Types::MemoryT& memory,
               uint16_t value,
               const bool is_byte);
 
+[[nodiscard]] DoubleOperand
+fetch_double_operands(const Types::MemoryT& memory,
+                      Types::RegistersT& registers,
+                      const Instruction instruction,
+                      bool resolve_destination);
+
 // INSTRUCTIONS
-// Single Byte Operations
+// Single Operand
 void
 clr(Types::MemoryT& memory,
     Types::RegistersT& registers,
