@@ -27,8 +27,8 @@ Instructions::jsr(Types::MemoryT& memory,
                   Types::RegistersT& registers,
                   Instruction instruction)
 {
-  uint8_t reg = (instruction.word >> 5) & 0x07;   // extract bit 6-8
-  uint16_t destination = instruction.word & 0x1f; // extract all lower 5 bits
+  uint8_t reg = (instruction.word >> 5) & 0x07;     // extract bit 6-8
+  uint16_t destination = instruction.word & 0x001f; // extract all lower 5 bits
 
   uint16_t temp = read_word(memory, destination);
   registers[stack_pointer] -= 2;
