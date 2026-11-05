@@ -83,7 +83,8 @@ enum class DestinationType
 
 struct Instruction
 {
-  uint16_t opcode;
+  uint16_t opcode; // only the instruction opcode, not the information within
+  uint16_t word;   // the entire word (instruction + whatever info)
   bool is_double;
   Registers destination[2]; // for double operands: [0] -> destination, [1] ->
                             // source | otherwise [0] is main operand for single
@@ -327,6 +328,17 @@ void
 blos(Types::MemoryT& memory,
      Types::RegistersT& registers,
      Instruction instruction);
+
+// Subroutine Instructions
+void
+rts(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+jsr(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 
 } // namespace Instructions
 

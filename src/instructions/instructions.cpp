@@ -178,6 +178,7 @@ Instructions::extract(const uint16_t word)
 {
   Instruction instruction{};
   const uint16_t group = word & 0x7000;
+  instruction.word = word;
 
   if (group == 0) { // single operand
     instruction.is_double = false;
