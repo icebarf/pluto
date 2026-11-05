@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using namespace Instructions;
 using namespace Types;
 
-void
+static void
 set_status(StatusRegister status, uint16_t value, bool is_byte)
 {
   status.set_negative_zero(value, is_byte);
