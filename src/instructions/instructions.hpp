@@ -215,6 +215,12 @@ void
 mov(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
+
+// Note: add and sub instructions are word-addressing only.
+void
+add(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 } // namespace Instructions
 
 #endif
