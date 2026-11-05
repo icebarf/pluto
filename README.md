@@ -19,3 +19,4 @@ Usage:
 - Generating and Running Tests
 - Analyzing Test results
 - Finding possible bug locations from above
+- Logical Analysis
