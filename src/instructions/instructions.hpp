@@ -360,6 +360,32 @@ void
 iot(Types::MemoryT& memory,
     Types::RegistersT& registers,
     Instruction instruction);
+
+// Miscellaneous
+void
+halt(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
+void
+wait(Types::MemoryT& memory,
+     Types::RegistersT& registers,
+     Instruction instruction);
+
+void
+reset(Types::MemoryT& memory,
+      Types::RegistersT& registers,
+      Instruction instruction);
+
+void
+rti(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
+
+void
+jmp(Types::MemoryT& memory,
+    Types::RegistersT& registers,
+    Instruction instruction);
 } // namespace Instructions
 
 #endif
