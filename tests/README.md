@@ -35,17 +35,17 @@ CTest is also registered:
 ctest --test-dir tests/build --output-on-failure
 ```
 
-The executable is the useful form while failures exist because it prints the
-failing assertion and the actual/expected values.
+The executable prints every test name and any failing assertion with actual and
+expected values.
 
 ## Current result
 
 ```text
-217 passed, 5 failed, 222 total (498 checks)
+222 passed, 0 failed, 222 total (498 checks)
 ```
 
-Only the JMP autoincrement special case, JSR, and RTI remain. Root causes and suggested fixes are documented in
-[`llm/remaining_instruction_test_findings.md`](../llm/remaining_instruction_test_findings.md).
+All covered instructions pass. The findings and fixes from the test-driven work
+are consolidated in [`llm/README.md`](../llm/README.md).
 
 ## Framework design
 
@@ -121,7 +121,7 @@ tests/
 | MOV/MOVB | 59-60 | 8 | 8 | register, immediate, byte sign-extension, memory-to-memory, both autoincrement |
 | ADD | 61 | 6 | 6 | carry-out cases pass |
 | SUB | 62 | 6 | 6 | borrow cases pass |
-| CMP | 63 | 6 | 6 | borrow cases pass; CMPB is not implemented |
+| CMP | 63 | 6 | 6 | borrow cases pass; CMPB does not exist on the 11/20 |
 | BIS/BISB, BIT/BITB, BIC/BICB | 65-67 | 8 | 8 | C unaffected, V cleared, byte forms |
 
 ### Branches
@@ -140,11 +140,11 @@ Every branch test checks both PC and that the condition codes are unchanged.
 
 | Group | Handbook | Tests | Passing |
 | --- | ---: | ---: | ---: |
-| JMP | 106 | 6 | 5 |
-| JSR | 91-92 | 3 | 0 |
+| JMP | 106 | 6 | 6 |
+| JSR | 91-92 | 3 | 3 |
 | RTS | 90 | 2 | 2 |
 | EMT, TRAP, BPT, IOT | 93-97 | 4 | 4 |
-| RTI | 105 | 1 | 0 |
+| RTI | 105 | 1 | 1 |
 | CLC/SEC, CLV/SEV, CLZ/SEZ, CLN/SEN | 107-108 | 8 | 8 |
 | CLVC, CCC, SCC | 107-108 | 3 | 3 |
 
@@ -171,26 +171,29 @@ For byte operations "negative" is bit 7 and "zero" is the low byte being zero.
 
 Branch conditions follow the handbook pages 69-88.
 
-## Known failures and handbook references
+## Test findings
 
-| Failing group | Count | Handbook | Cause |
-| --- | ---: | ---: | --- |
-| JMP | 1 | 106 | normal effective-address modes pass; mode-2 (autoincrement) must increment before use |
-| JSR | 3 | 91-92 | destination still treated as an absolute low-5-bit address and read as a pointer |
-| RTI | 1 | 105 | SP is decremented instead of incremented while popping |
+All 222 tests pass. The main issues found and fixed while building this suite
+were:
 
-Fixes verified in this pass: BGT condition, trap vector literals, the
-ADD/SUB/CMP unsigned carry/borrow calculations, and JMP's normal
-effective-address handling. The `sub_word_negative_overflow` test expectation
-was corrected to include the borrow flag.
+- register writes falling through into memory location 0;
+- NEG/NEGB carry inversion;
+- ADC/SBC C=0 retention and ADC V/C boundaries;
+- SWAB Z defined on the low byte;
+- BGT condition;
+- trap vectors written as decimal instead of octal;
+- ADD/SUB/CMP carry and borrow derived from signed arithmetic;
+- JMP effective address and its autoincrement special case;
+- JSR destination/linkage handling;
+- RTI stack-pop direction.
 
-Suggested fixes for the remaining three instructions are in
-[`llm/remaining_instruction_test_findings.md`](../llm/remaining_instruction_test_findings.md).
-Applying those three changes was validated in a scratch copy: **222/222 pass**.
+The consolidated write-up, including handbook page references, is in
+[`llm/README.md`](../llm/README.md).
 
-## Deliberately excluded
+## ISA boundary and exclusions
 
-- `WAIT`, `HALT`, `RESET`: unimplemented console-dependent instructions.
-- `CMPB`: the current `cmp()` asserts word-only.
-- `ADDB`, `SUBB`: word-only on the 11/20 in the current implementation.
-- `RTT`, `MARK`, `MFPI`, `MTPI`, `SPL`: not present in the current source.
+- `WAIT`, `HALT`, `RESET`: 11/20 instructions, but unimplemented because they
+  need the console layer.
+- `CMPB`: does not exist on the PDP-11/20; CMP is word-only.
+- `ADDB`, `SUBB`: do not exist on the PDP-11/20; ADD and SUB are word-only.
+- `RTT`, `MARK`, `MFPI`, `MTPI`, `SPL`: PDP-11/45 instructions, not PDP-11/20.
